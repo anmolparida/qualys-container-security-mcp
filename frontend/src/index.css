@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dark theme (default) */
+:root {
+  --bg-base: #1a1a2e;
+  --bg-card: #16213e;
+  --bg-secondary: #0f3460;
+  --bg-secondary-alpha: rgba(15, 52, 96, 0.3);
+  --bg-hover: rgba(15, 52, 96, 0.2);
+  --border: #0f3460;
+  --text-primary: #e2e8f0;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --sidebar-bg: #16213e;
+  --chart-bg: #16213e;
+  --chart-border: #0f3460;
+}
+
+/* Light theme */
+:root.light {
+  --bg-base: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-secondary: #e2e8f0;
+  --bg-secondary-alpha: rgba(226, 232, 240, 0.6);
+  --bg-hover: rgba(226, 232, 240, 0.5);
+  --border: #cbd5e1;
+  --text-primary: #0f172a;
+  --text-secondary: #1e293b;
+  --text-muted: #64748b;
+  --sidebar-bg: #1e293b;
+  --chart-bg: #ffffff;
+  --chart-border: #e2e8f0;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-card); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
