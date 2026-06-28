@@ -7,7 +7,7 @@ import { RefreshCw, Box, Play, Square, AlertTriangle } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 
 const SEV_COLORS: Record<string, string> = {
-  CRITICAL: '#dc2626',
+  CRITICAL: '#ef4444',
   HIGH: '#f97316',
   MEDIUM: '#eab308',
   LOW: '#3b82f6',

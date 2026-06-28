@@ -31,11 +31,18 @@ export default function ImageVulnerabilities() {
 
   const { severity_totals, top_vulnerable_images, total_images } = data
 
+  const SEV_COLORS: Record<string, string> = {
+    Critical: '#ef4444',
+    High: '#f97316',
+    Medium: '#eab308',
+    Low: '#3b82f6',
+  }
+
   const barData = [
-    { name: 'Critical', value: severity_totals.critical, fill: '#dc2626' },
-    { name: 'High', value: severity_totals.high, fill: '#f97316' },
-    { name: 'Medium', value: severity_totals.medium, fill: '#eab308' },
-    { name: 'Low', value: severity_totals.low, fill: '#3b82f6' },
+    { name: 'Critical', value: severity_totals.critical, fill: SEV_COLORS.Critical },
+    { name: 'High', value: severity_totals.high, fill: SEV_COLORS.High },
+    { name: 'Medium', value: severity_totals.medium, fill: SEV_COLORS.Medium },
+    { name: 'Low', value: severity_totals.low, fill: SEV_COLORS.Low },
   ]
 
   const tooltipStyle = {
