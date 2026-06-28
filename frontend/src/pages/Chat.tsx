@@ -50,7 +50,7 @@ const markdownComponents: any = {
 function SafeMarkdown({ content }: { content: string }) {
   return (
     <MarkdownErrorBoundary fallback={<pre className="whitespace-pre-wrap font-sans text-sm">{content}</pre>}>
-      <ReactMarkdown remarkPlugins={[remarkGfm as any]} components={markdownComponents}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
         {content}
       </ReactMarkdown>
     </MarkdownErrorBoundary>
