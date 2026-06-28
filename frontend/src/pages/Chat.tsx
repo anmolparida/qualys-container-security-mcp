@@ -87,12 +87,14 @@ function renderAssistantContent(content: string) {
 }
 
 const SUGGESTIONS = [
-  'Show me all critical vulnerabilities across containers',
+  'Show all critical vulnerabilities across containers',
   'Which images have the most high severity CVEs?',
-  'List all running containers with their vulnerability counts',
+  'List running containers with vulnerability counts',
   'What is the current K8s posture score?',
   'Are there any secrets detected in my images?',
-  'Show registry scan status for all registries',
+  'Show registry scan status',
+  'Show a pie chart of vulnerability severity',
+  'Chart image vulnerabilities by severity',
 ]
 
 export default function Chat() {
@@ -161,90 +163,105 @@ export default function Chat() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)]">
-      <h2 className="text-xl font-bold mb-4">AI Security Assistant</h2>
-
-      {messages.length === 0 && (
-        <div className="flex-1 flex flex-col items-center justify-center gap-6">
-          <div className="text-center">
-            <Bot size={48} className="mx-auto text-blue-400 mb-3" />
-            <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>Ask anything about your container security</p>
-            <p className="text-slate-500 text-sm mt-1">Powered by Claude via AWS Bedrock</p>
+    <div className="flex flex-col h-full">
+      {/* Messages area */}
+      <div className="flex-1 overflow-y-auto px-4 pb-4">
+        {messages.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center gap-8">
+            <div className="text-center space-y-3">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto shadow-lg shadow-blue-900/20">
+                <Bot size={32} className="text-white" />
+              </div>
+              <div>
+                <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>AI Security Assistant</p>
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Ask anything about your container security posture</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl">
+              {SUGGESTIONS.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => send(s)}
+                  disabled={streaming}
+                  className="text-left text-sm p-3 rounded-xl border transition-all hover:border-blue-500 hover:bg-[var(--bg-secondary-alpha)] disabled:opacity-50"
+                  style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl">
-            {SUGGESTIONS.map((s, i) => (
-              <button
-                key={i}
-                onClick={() => send(s)}
-                className="text-left text-sm p-3 rounded-lg border transition-all hover:border-blue-500"
-                style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {messages.length > 0 && (
-        <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-          {messages.map((m, i) => (
-            <div key={i} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              {m.role === 'assistant' && (
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 mt-1">
-                  <Bot size={16} />
-                </div>
-              )}
-              <div
-                className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${m.role === 'user' ? 'max-w-[75%]' : 'max-w-[90%]'}`}
-                style={m.role === 'user'
-                  ? { background: '#2563eb', color: '#ffffff', borderRadius: '1rem 1rem 0.25rem 1rem', whiteSpace: 'pre-wrap' }
-                  : { background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', borderRadius: '1rem 1rem 1rem 0.25rem' }
-                }
-              >
-                {m.role === 'user' ? (
-                  m.content
-                ) : streaming && i === messages.length - 1 && m.role === 'assistant' ? (
-                  <pre className="whitespace-pre-wrap font-sans text-sm">{m.content}</pre>
-                ) : (
-                  renderAssistantContent(m.content)
+        ) : (
+          <div className="space-y-5 max-w-4xl mx-auto pt-4">
+            {messages.map((m, i) => (
+              <div key={i} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                {m.role === 'assistant' && (
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 mt-1">
+                    <Bot size={16} className="text-white" />
+                  </div>
                 )}
-                {streaming && i === messages.length - 1 && m.role === 'assistant' && m.content === '' && (
-                  <span className="inline-flex gap-1 items-center">
-                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </span>
+                <div className={`max-w-[85%] md:max-w-[75%] ${m.role === 'user' ? 'order-1' : 'order-2'}`}>
+                  <div
+                    className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                      m.role === 'user'
+                        ? 'bg-blue-600 text-white rounded-br-md'
+                        : 'border rounded-bl-md'
+                    }`}
+                    style={m.role === 'user'
+                      ? { whiteSpace: 'pre-wrap' }
+                      : { background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }
+                    }
+                  >
+                    {m.role === 'user' ? (
+                      m.content
+                    ) : streaming && i === messages.length - 1 && m.role === 'assistant' ? (
+                      <pre className="whitespace-pre-wrap font-sans text-sm">{m.content}</pre>
+                    ) : (
+                      renderAssistantContent(m.content)
+                    )}
+                    {streaming && i === messages.length - 1 && m.role === 'assistant' && m.content === '' && (
+                      <span className="inline-flex gap-1.5 items-center h-5">
+                        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {m.role === 'user' && (
+                  <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0 mt-1 order-2">
+                    <User size={16} className="text-white" />
+                  </div>
                 )}
               </div>
-              {m.role === 'user' && (
-                <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0 mt-1">
-                  <User size={16} />
-                </div>
-              )}
-            </div>
-          ))}
-          <div ref={bottomRef} />
-        </div>
-      )}
+            ))}
+            <div ref={bottomRef} />
+          </div>
+        )}
+      </div>
 
-      <div className="mt-4 flex gap-3">
-        <input
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send(input)}
-          placeholder="Ask about containers, images, vulnerabilities..."
-          disabled={streaming}
-          className="flex-1 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-colors border"
-          style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
-        />
-        <button
-          onClick={() => send(input)}
-          disabled={streaming || !input.trim()}
-          className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl px-4 py-3 transition-colors"
-        >
-          <Send size={18} />
-        </button>
+      {/* Input area */}
+      <div className="border-t flex-shrink-0 p-4" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+        <div className="max-w-4xl mx-auto flex gap-3">
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send(input)}
+            placeholder="Ask about containers, images, vulnerabilities, or charts..."
+            disabled={streaming}
+            className="flex-1 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-colors border"
+            style={{ background: 'var(--bg-base)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+          />
+          <button
+            onClick={() => send(input)}
+            disabled={streaming || !input.trim()}
+            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl px-4 py-3 transition-colors flex items-center gap-2"
+          >
+            <Send size={18} />
+            <span className="hidden sm:inline text-sm font-medium">Send</span>
+          </button>
+        </div>
+        <p className="text-center text-xs mt-2" style={{ color: 'var(--text-muted)' }}>Powered by Claude on Amazon Bedrock</p>
       </div>
     </div>
   )

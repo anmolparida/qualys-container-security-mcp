@@ -3,7 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { fetchDashboard } from '../lib/api'
 import StatCard from '../components/StatCard'
 import SeverityBadge from '../components/SeverityBadge'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Image, AlertTriangle, Flame, ShieldAlert } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 
 export default function ImageVulnerabilities() {
@@ -57,10 +57,10 @@ export default function ImageVulnerabilities() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Total Images" value={total_images} />
-        <StatCard label="Critical" value={severity_totals.critical} color="text-red-400" />
-        <StatCard label="High" value={severity_totals.high} color="text-orange-400" />
-        <StatCard label="Medium" value={severity_totals.medium} color="text-yellow-400" />
+        <StatCard label="Total Images" value={total_images} icon={Image} accent="from-blue-500 to-cyan-500" />
+        <StatCard label="Critical" value={severity_totals.critical} color="text-red-400" icon={AlertTriangle} accent="from-red-500 to-red-600" />
+        <StatCard label="High" value={severity_totals.high} color="text-orange-400" icon={Flame} accent="from-orange-500 to-orange-600" />
+        <StatCard label="Medium" value={severity_totals.medium} color="text-yellow-400" icon={ShieldAlert} accent="from-yellow-500 to-yellow-600" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

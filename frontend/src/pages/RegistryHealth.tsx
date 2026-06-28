@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchDashboard } from '../lib/api'
 import StatCard from '../components/StatCard'
-import { RefreshCw, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { RefreshCw, CheckCircle, XCircle, Clock, Database, HeartPulse, AlertCircle } from 'lucide-react'
 
 function StatusIcon({ status }: { status: string }) {
   const s = (status ?? '').toUpperCase()
@@ -44,9 +44,9 @@ export default function RegistryHealth() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <StatCard label="Total Registries" value={data.total} />
-        <StatCard label="Healthy" value={healthy} color="text-green-400" />
-        <StatCard label="Unhealthy / Unknown" value={data.total - healthy} color="text-red-400" />
+        <StatCard label="Total Registries" value={data.total} icon={Database} accent="from-blue-500 to-cyan-500" />
+        <StatCard label="Healthy" value={healthy} color="text-green-400" icon={HeartPulse} accent="from-green-500 to-emerald-600" />
+        <StatCard label="Unhealthy / Unknown" value={data.total - healthy} color="text-red-400" icon={AlertCircle} accent="from-red-500 to-red-600" />
       </div>
 
       <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>

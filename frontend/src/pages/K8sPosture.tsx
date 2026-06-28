@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchDashboard } from '../lib/api'
 import StatCard from '../components/StatCard'
-import { RefreshCw, Server } from 'lucide-react'
+import { RefreshCw, Server, CheckCircle, XCircle, ListChecks, Network } from 'lucide-react'
 
 export default function K8sPosture() {
   const [data, setData] = useState<any>(null)
@@ -40,10 +40,10 @@ export default function K8sPosture() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Total Clusters" value={data.total_clusters} />
-        <StatCard label="Posture Controls" value={total} />
-        <StatCard label="Passed" value={passed} color="text-green-400" />
-        <StatCard label="Failed" value={failed} color="text-red-400" />
+        <StatCard label="Total Clusters" value={data.total_clusters} icon={Network} accent="from-blue-500 to-cyan-500" />
+        <StatCard label="Posture Controls" value={total} icon={ListChecks} accent="from-purple-500 to-purple-600" />
+        <StatCard label="Passed" value={passed} color="text-green-400" icon={CheckCircle} accent="from-green-500 to-emerald-600" />
+        <StatCard label="Failed" value={failed} color="text-red-400" icon={XCircle} accent="from-red-500 to-red-600" />
       </div>
 
       {total > 0 && (

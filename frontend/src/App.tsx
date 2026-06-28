@@ -20,59 +20,72 @@ const NAV = [
 export default function App() {
   const [tab, setTab] = useState<Tab>('chat')
   const { dark, toggle } = useTheme()
+  const active = NAV.find(n => n.id === tab)
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-base)' }}>
       {/* Sidebar */}
-      <aside className="w-56 border-r flex flex-col flex-shrink-0" style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--border)' }}>
-        <div className="p-5 border-b" style={{ borderColor: 'var(--border)' }}>
-          <div className="flex items-center gap-2">
-            <Shield size={22} className="text-red-500" />
+      <aside className="w-60 flex flex-col flex-shrink-0" style={{ background: 'var(--sidebar-bg)', borderRight: '1px solid var(--border)' }}>
+        <div className="p-5">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-red-500 flex items-center justify-center shadow-lg">
+              <Shield size={20} className="text-white" />
+            </div>
             <div>
-              <p className="text-sm font-bold text-white">Qualys CS</p>
+              <p className="text-sm font-bold text-white tracking-tight">Qualys CS</p>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Intelligence Platform</p>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 p-3 space-y-1">
+        <nav className="flex-1 px-3 py-2 space-y-1">
           {NAV.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setTab(id)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 tab === id
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-900/30'
                   : 'text-slate-400 hover:text-white hover:bg-[var(--bg-secondary-alpha)]'
               }`}
             >
-              <Icon size={16} />
+              <Icon size={17} />
               {label}
             </button>
           ))}
         </nav>
 
-        <div className="p-4 border-t space-y-3" style={{ borderColor: 'var(--border)' }}>
-          {/* Theme toggle */}
+        <div className="p-4 border-t space-y-2" style={{ borderColor: 'var(--border)' }}>
           <button
             onClick={toggle}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-[var(--bg-secondary-alpha)] transition-all"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-[var(--bg-secondary-alpha)] transition-all"
             title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
           >
-            {dark ? <Sun size={15} /> : <Moon size={15} />}
+            {dark ? <Sun size={16} /> : <Moon size={16} />}
             {dark ? 'Light mode' : 'Dark mode'}
           </button>
-          <p className="text-xs px-1" style={{ color: 'var(--text-muted)' }}>qg1.apps.qualys.ca</p>
         </div>
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto p-6" style={{ color: 'var(--text-primary)' }}>
-        {tab === 'containers' && <ContainerOverview />}
-        {tab === 'images' && <ImageVulnerabilities />}
-        {tab === 'registry' && <RegistryHealth />}
-        {tab === 'k8s' && <K8sPosture />}
-        {tab === 'chat' && <Chat />}
+      <main className="flex-1 flex flex-col overflow-hidden" style={{ color: 'var(--text-primary)' }}>
+        <header className="h-16 flex items-center justify-between px-6 border-b flex-shrink-0" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+          <div>
+            <h1 className="text-lg font-semibold">{active?.label}</h1>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Qualys Container Security API</p>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+            <span className="w-2 h-2 rounded-full bg-green-500" />
+            Live
+          </div>
+        </header>
+        <div className="flex-1 overflow-y-auto p-6">
+          {tab === 'containers' && <ContainerOverview />}
+          {tab === 'images' && <ImageVulnerabilities />}
+          {tab === 'registry' && <RegistryHealth />}
+          {tab === 'k8s' && <K8sPosture />}
+          {tab === 'chat' && <Chat />}
+        </div>
       </main>
     </div>
   )

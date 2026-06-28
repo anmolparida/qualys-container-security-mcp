@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { fetchDashboard } from '../lib/api'
 import StatCard from '../components/StatCard'
 import SeverityBadge from '../components/SeverityBadge'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Box, Play, Square, AlertTriangle } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 
 const SEV_COLORS: Record<string, string> = {
@@ -58,10 +58,10 @@ export default function ContainerOverview() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Total Containers" value={data.total} />
-        <StatCard label="Running" value={data.running} color="text-green-400" />
-        <StatCard label="Stopped" value={data.stopped} color="text-slate-400" />
-        <StatCard label="Critical Vulns" value={data.severity_breakdown.CRITICAL} color="text-red-400" />
+        <StatCard label="Total Containers" value={data.total} icon={Box} accent="from-blue-500 to-cyan-500" />
+        <StatCard label="Running" value={data.running} color="text-green-400" icon={Play} accent="from-green-500 to-emerald-600" />
+        <StatCard label="Stopped" value={data.stopped} color="text-slate-400" icon={Square} accent="from-slate-500 to-slate-600" />
+        <StatCard label="Critical Vulns" value={data.severity_breakdown.CRITICAL} color="text-red-400" icon={AlertTriangle} accent="from-red-500 to-red-600" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
