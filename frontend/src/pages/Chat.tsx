@@ -97,13 +97,28 @@ const SUGGESTIONS = [
   'Chart image vulnerabilities by severity',
 ]
 
+const QUALYS_FACTS = [
+  'Qualys Container Security provides agentless vulnerability scanning for containers and images.',
+  'The Container Security sensor can be deployed as a DaemonSet on Kubernetes clusters.',
+  'Qualys CS supports scanning images in Docker, containerd, and CRI-O runtimes.',
+  'Vulnerability data is correlated with the Qualys KnowledgeBase for accurate CVE detection.',
+  'Registry scanning helps identify vulnerabilities before images reach production.',
+  'Runtime container scanning detects threats in running workloads without affecting performance.',
+  'Qualys Container Security integrates with CI/CD pipelines for shift-left security.',
+  'The platform supports AWS, Azure, and GCP container registries.',
+  'Container posture assessments help enforce CIS benchmarks and security policies.',
+  'Software bill of materials (SBOM) is available for scanned containers and images.',
+]
+
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
+  const [currentFact, setCurrentFact] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const streamBuffer = useRef('')
   const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastFactIndex = useRef(-1)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -129,11 +144,22 @@ export default function Chat() {
     })
   }
 
+  const pickFact = () => {
+    let idx = Math.floor(Math.random() * QUALYS_FACTS.length)
+    // Avoid repeating the same fact twice in a row
+    if (idx === lastFactIndex.current && QUALYS_FACTS.length > 1) {
+      idx = (idx + 1) % QUALYS_FACTS.length
+    }
+    lastFactIndex.current = idx
+    return QUALYS_FACTS[idx]
+  }
+
   const send = async (text: string) => {
     if (!text.trim() || streaming) return
     const userMsg: Message = { role: 'user', content: text }
     setMessages(prev => [...prev, userMsg])
     setInput('')
+    setCurrentFact(pickFact())
     setStreaming(true)
 
     const assistantMsg: Message = { role: 'assistant', content: '' }
@@ -220,11 +246,18 @@ export default function Chat() {
                       renderAssistantContent(m.content)
                     )}
                     {streaming && i === messages.length - 1 && m.role === 'assistant' && m.content === '' && (
-                      <span className="inline-flex gap-1.5 items-center h-5">
-                        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                      </span>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <div className="relative w-5 h-5">
+                            <span className="absolute inset-0 rounded-full border-2 border-slate-500/30" />
+                            <span className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-400 animate-spin" />
+                          </div>
+                          <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Analyzing your Qualys data...</span>
+                        </div>
+                        <div className="rounded-lg border-l-4 border-blue-500 p-3 text-xs italic" style={{ background: 'var(--bg-secondary-alpha)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+                          <span className="font-semibold not-italic" style={{ color: 'var(--text-secondary)' }}>Did you know?</span> {currentFact}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
