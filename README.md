@@ -1,4 +1,4 @@
-# Qualys PM-SME Hackathon
+# Qualys Container Security MCP
 
 An AI-powered container security intelligence assistant built on top of the **Qualys Container Security (CS)** API. It combines a Python MCP (Model Context Protocol) server, a FastAPI backend orchestrator, and a React + Tailwind frontend to let security teams ask natural-language questions about containers, images, vulnerabilities, registries, Kubernetes clusters, and sensors.
 
@@ -18,7 +18,7 @@ An AI-powered container security intelligence assistant built on top of the **Qu
 
 ## Overview
 
-This project was created for a hackathon to demonstrate how LLM agents can interact with the Qualys Container Security API via the Model Context Protocol (MCP). It enables conversational exploration of container security data, including:
+This project is an AI-powered container security intelligence assistant that uses the Model Context Protocol (MCP) to let LLM agents interact with the Qualys Container Security API. It enables conversational exploration of container security data, including:
 
 - Container and image inventories
 - Vulnerability counts and details (CVE, severity, affected components)
@@ -91,9 +91,9 @@ BEDROCK_MODEL_ID=us.anthropic.claude-sonnet-4-5-20250929-v1:0
 Instead of hardcoding AWS keys, you can also use:
 
 ```bash
-aws configure sso --profile qualys-hackathon
-aws sso login --profile qualys-hackathon
-export AWS_PROFILE=qualys-hackathon
+aws configure sso --profile qualys-cs-mcp
+aws sso login --profile qualys-cs-mcp
+export AWS_PROFILE=qualys-cs-mcp
 ```
 
 If you use SSO, update the backend code in `backend/agent.py` to use `anthropic.AnthropicBedrock()` without explicit credentials so it picks up the AWS profile.
@@ -279,7 +279,7 @@ The backend CORS middleware allows `http://localhost:5173` and `http://localhost
 
 ## Contributing
 
-This is a hackathon project. If you want to extend it:
+If you want to extend this project:
 
 1. Add new MCP tools in `mcp_server/server.py`
 2. Mirror the tool definitions in `backend/agent.py` so the LLM knows about them
