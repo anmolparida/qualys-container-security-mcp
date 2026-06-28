@@ -43,11 +43,8 @@ export default function App() {
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 tab === id
                   ? 'bg-blue-600 text-white'
-                  : 'text-slate-400 hover:text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-[var(--bg-secondary-alpha)]'
               }`}
-              style={tab !== id ? { '--hover-bg': 'var(--bg-hover)' } as React.CSSProperties : {}}
-              onMouseEnter={e => tab !== id && ((e.currentTarget as HTMLElement).style.background = 'var(--bg-secondary-alpha)')}
-              onMouseLeave={e => tab !== id && ((e.currentTarget as HTMLElement).style.background = '')}
             >
               <Icon size={16} />
               {label}
