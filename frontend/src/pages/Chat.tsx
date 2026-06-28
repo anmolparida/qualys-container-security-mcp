@@ -8,6 +8,7 @@ import ChartRenderer from '../components/ChartRenderer'
 interface Message {
   role: 'user' | 'assistant'
   content: string
+  fact?: string
 }
 
 // Error boundary that falls back to plain text if react-markdown crashes.
@@ -156,10 +157,11 @@ export default function Chat() {
 
   const send = async (text: string) => {
     if (!text.trim() || streaming) return
-    const userMsg: Message = { role: 'user', content: text }
+    const fact = pickFact()
+    const userMsg: Message = { role: 'user', content: text, fact }
     setMessages(prev => [...prev, userMsg])
     setInput('')
-    setCurrentFact(pickFact())
+    setCurrentFact(fact)
     setStreaming(true)
 
     const assistantMsg: Message = { role: 'assistant', content: '' }
@@ -192,14 +194,6 @@ export default function Chat() {
     <div className="flex flex-col h-full">
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 pb-4">
-        {streaming && currentFact && (
-          <div className="sticky top-0 z-10 max-w-4xl mx-auto mb-4">
-            <div className="rounded-lg border-l-4 border-blue-500 p-3 text-xs shadow-lg" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
-              <span className="font-semibold not-italic" style={{ color: 'var(--text-secondary)' }}>Did you know?</span>{' '}
-              <span className="italic">{currentFact}</span>
-            </div>
-          </div>
-        )}
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center gap-8">
             <div className="text-center space-y-3">
@@ -235,6 +229,14 @@ export default function Chat() {
                   </div>
                 )}
                 <div className={`max-w-[85%] md:max-w-[75%] ${m.role === 'user' ? 'order-1' : 'order-2'}`}>
+                  {m.role === 'user' && m.fact && (
+                    <div className="mb-2 text-right">
+                      <div className="inline-block rounded-lg border-l-4 border-blue-500 p-2.5 text-xs text-left max-w-full" style={{ background: 'var(--bg-secondary-alpha)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+                        <span className="font-semibold not-italic" style={{ color: 'var(--text-secondary)' }}>Did you know?</span>{' '}
+                        <span className="italic">{m.fact}</span>
+                      </div>
+                    </div>
+                  )}
                   <div
                     className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                       m.role === 'user'
