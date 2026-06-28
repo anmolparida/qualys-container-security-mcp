@@ -1,8 +1,12 @@
 import os
 import json
+import logging
+import asyncio
 import httpx
 from typing import AsyncGenerator
 import anthropic
+
+logger = logging.getLogger("agent")
 
 BEDROCK_MODEL = os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-5-20250929-v1:0")
 
@@ -13,7 +17,17 @@ registries, Kubernetes clusters, sensors, and security posture.
 You have access to tools that call the Qualys Container Security API. Always use these tools
 to fetch real data before answering. Be concise, clear, and highlight critical security findings.
 When presenting vulnerability data, always lead with critical and high severity issues.
-Never make up data — only report what the API returns."""
+Never make up data — only report what the API returns.
+
+FORMATTING RULES:
+- Always use markdown tables for lists of items (containers, images, vulnerabilities, registries, clusters, etc.)
+- Use bold (**text**) for severity labels and important values
+- Use bullet points only for short summaries, not for lists of data
+- For vulnerability tables include columns: Name/ID, Severity, CVE, Affected Component
+- For container tables include columns: Name, State, Image, Critical, High vulns
+- For image tables include columns: Image, Tag, Critical, High, Medium vulns
+- Keep table rows concise — truncate long strings with ...
+- After a table, add a 1–2 line summary of the key finding"""
 
 
 def _make_client() -> anthropic.AnthropicBedrock:
@@ -48,8 +62,12 @@ TOOLS = [
     {"name": "get_image_vuln_count", "description": "Get vulnerability count summary for a specific image.", "input_schema": {"type": "object", "properties": {"image_sha": {"type": "string"}}, "required": ["image_sha"]}},
     {"name": "get_image_software", "description": "List software installed in a specific image.", "input_schema": {"type": "object", "properties": {"image_sha": {"type": "string"}, "filter": {"type": "string", "default": ""}}, "required": ["image_sha"]}},
     {"name": "get_image_compliance", "description": "Get policy compliance details for a specific image.", "input_schema": {"type": "object", "properties": {"image_sha": {"type": "string"}}, "required": ["image_sha"]}},
-    {"name": "get_image_secrets", "description": "Get detected secrets in a specific image.", "input_schema": {"type": "object", "properties": {"image_sha": {"type": "string"}}, "required": ["image_sha"]}},
-    {"name": "get_image_malware", "description": "Get detected malware across image layers.", "input_schema": {"type": "object", "properties": {"image_sha": {"type": "string"}}, "required": ["image_sha"]}},
+    {"name": "get_image_secrets", "description": "Get detected secrets inside a SPECIFIC image by SHA. Use find_images_with_secrets instead if you don't have a SHA yet.", "input_schema": {"type": "object", "properties": {"image_sha": {"type": "string"}}, "required": ["image_sha"]}},
+    {"name": "get_image_malware", "description": "Get detected malware inside a SPECIFIC image by SHA. Use find_images_with_malware instead if you don't have a SHA yet.", "input_schema": {"type": "object", "properties": {"image_sha": {"type": "string"}}, "required": ["image_sha"]}},
+    {"name": "find_images_with_secrets", "description": "Find all images that have secrets detected (secretsCount > 0). Use this instead of listing all images and looping. Returns image list with secretsCount, name, sha, repo.", "input_schema": {"type": "object", "properties": {"page_size": {"type": "integer", "default": 50}}}},
+    {"name": "find_images_with_malware", "description": "Find all images that have malware detected (malwareCount > 0). Use this instead of listing all images and looping.", "input_schema": {"type": "object", "properties": {"page_size": {"type": "integer", "default": 50}}}},
+    {"name": "find_images_by_vuln_severity", "description": "Find images filtered by vulnerability severity. Use severity=CRITICAL or HIGH or MEDIUM. More efficient than listing all images.", "input_schema": {"type": "object", "properties": {"severity": {"type": "string", "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"], "default": "CRITICAL"}, "page_size": {"type": "integer", "default": 50}}}},
+    {"name": "find_containers_by_vuln_severity", "description": "Find containers filtered by vulnerability severity. Use severity=CRITICAL or HIGH. More efficient than listing all containers.", "input_schema": {"type": "object", "properties": {"severity": {"type": "string", "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"], "default": "CRITICAL"}, "page_size": {"type": "integer", "default": 50}}}},
     {"name": "get_image_association", "description": "Get container associations for a specific image.", "input_schema": {"type": "object", "properties": {"image_sha": {"type": "string"}}, "required": ["image_sha"]}},
     {"name": "list_images_bulk", "description": "Bulk list images with pagination support.", "input_schema": {"type": "object", "properties": {"filter": {"type": "string", "default": ""}, "limit": {"type": "integer", "default": 50}, "pagination_query": {"type": "string", "default": ""}}}},
     {"name": "list_registries", "description": "List all container registries configured in Qualys.", "input_schema": {"type": "object", "properties": {"filter": {"type": "string", "default": ""}, "page_number": {"type": "integer", "default": 1}, "page_size": {"type": "integer", "default": 50}}}},
@@ -72,52 +90,56 @@ TOOLS = [
 ]
 
 
-def _call_qualys_tool(name: str, inputs: dict) -> str:
-    """Execute a Qualys API call matching the tool name."""
-    from qualys_client import get
+async def _call_qualys_tool(name: str, inputs: dict) -> str:
+    """Execute a Qualys API call matching the tool name (async)."""
+    from qualys_client import get_async
 
     routes = {
-        "list_containers": lambda i: get("/containers", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50), "sort": i.get("sort", "created:desc")}),
-        "get_container_details": lambda i: get(f"/containers/{i['container_sha']}"),
-        "get_container_vulns": lambda i: get(f"/containers/{i['container_sha']}/vuln", {"filter": i.get("filter", ""), "type": i.get("vuln_type", "ALL")}),
-        "get_container_vuln_count": lambda i: get(f"/containers/{i['container_sha']}/vuln/count"),
-        "get_container_software": lambda i: get(f"/containers/{i['container_sha']}/software", {"filter": i.get("filter", "")}),
-        "get_container_compliance": lambda i: get(f"/containers/{i['container_sha']}/compliance"),
-        "list_containers_bulk": lambda i: get("/containers/list", {"filter": i.get("filter", ""), "limit": i.get("limit", 50)}),
-        "list_images": lambda i: get("/images", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50), "sort": i.get("sort", "created:desc")}),
-        "get_image_details": lambda i: get(f"/images/{i['image_sha']}"),
-        "get_image_vulns": lambda i: get(f"/images/{i['image_sha']}/vuln", {"filter": i.get("filter", ""), "type": i.get("vuln_type", "ALL")}),
-        "get_image_vuln_count": lambda i: get(f"/images/{i['image_sha']}/vuln/count"),
-        "get_image_software": lambda i: get(f"/images/{i['image_sha']}/software", {"filter": i.get("filter", "")}),
-        "get_image_compliance": lambda i: get(f"/images/{i['image_sha']}/compliance"),
-        "get_image_secrets": lambda i: get(f"/images/{i['image_sha']}/secrets"),
-        "get_image_malware": lambda i: get(f"/images/{i['image_sha']}/layers/malware"),
-        "get_image_association": lambda i: get(f"/images/{i['image_sha']}/association"),
-        "list_images_bulk": lambda i: get("/images/list", {"filter": i.get("filter", ""), "limit": i.get("limit", 50)}),
-        "list_registries": lambda i: get("/registry", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
-        "get_registry_details": lambda i: get(f"/registry/{i['registry_id']}"),
-        "get_registry_repositories": lambda i: get(f"/registry/{i['registry_id']}/repository", {"pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
-        "get_registry_schedules": lambda i: get(f"/registry/{i['registry_id']}/schedule"),
-        "list_sensors": lambda i: get("/sensors", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
-        "get_sensor_details": lambda i: get(f"/sensors/{i['sensor_id']}"),
-        "list_k8s_clusters": lambda i: get("/k8sClusters", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
-        "get_k8s_cluster": lambda i: get(f"/k8sClusters/{i['cluster_uid']}"),
-        "list_k8s_pods": lambda i: get("/k8sResource/pod", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
-        "list_k8s_namespaces": lambda i: get("/k8sResource/namespace", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
-        "get_k8s_postures": lambda i: get("/k8s_postures/list", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
-        "get_k8s_posture_count": lambda i: get("/k8s_postures/count", {"filter": i.get("filter", "")}),
-        "list_vulnerabilities": lambda i: get("/vulnerability", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
-        "get_vulnerability_details": lambda i: get(f"/vulnerability/{i['vuln_uuid']}"),
-        "list_controls": lambda i: get("/controls", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
-        "list_exceptions": lambda i: get("/exception", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
-        "list_secret_detectors": lambda i: get("/secretDetector", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
+        "list_containers": lambda i: get_async("/containers", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50), "sort": i.get("sort", "created:desc")}),
+        "get_container_details": lambda i: get_async(f"/containers/{i['container_sha']}"),
+        "get_container_vulns": lambda i: get_async(f"/containers/{i['container_sha']}/vuln", {"filter": i.get("filter", ""), "type": i.get("vuln_type", "ALL")}),
+        "get_container_vuln_count": lambda i: get_async(f"/containers/{i['container_sha']}/vuln/count"),
+        "get_container_software": lambda i: get_async(f"/containers/{i['container_sha']}/software", {"filter": i.get("filter", "")}),
+        "get_container_compliance": lambda i: get_async(f"/containers/{i['container_sha']}/compliance"),
+        "list_containers_bulk": lambda i: get_async("/containers/list", {"filter": i.get("filter", ""), "limit": i.get("limit", 50)}),
+        "list_images": lambda i: get_async("/images", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50), "sort": i.get("sort", "created:desc")}),
+        "get_image_details": lambda i: get_async(f"/images/{i['image_sha']}"),
+        "get_image_vulns": lambda i: get_async(f"/images/{i['image_sha']}/vuln", {"filter": i.get("filter", ""), "type": i.get("vuln_type", "ALL")}),
+        "get_image_vuln_count": lambda i: get_async(f"/images/{i['image_sha']}/vuln/count"),
+        "get_image_software": lambda i: get_async(f"/images/{i['image_sha']}/software", {"filter": i.get("filter", "")}),
+        "get_image_compliance": lambda i: get_async(f"/images/{i['image_sha']}/compliance"),
+        "get_image_secrets": lambda i: get_async(f"/images/{i['image_sha']}/secrets"),
+        "get_image_malware": lambda i: get_async(f"/images/{i['image_sha']}/layers/malware"),
+        "get_image_association": lambda i: get_async(f"/images/{i['image_sha']}/association"),
+        "list_images_bulk": lambda i: get_async("/images/list", {"filter": i.get("filter", ""), "limit": i.get("limit", 50)}),
+        "find_images_with_secrets": lambda i: get_async("/images", {"filter": "secretsCount:>0", "pageSize": i.get("page_size", 50), "sort": "secretsCount:desc"}),
+        "find_images_with_malware": lambda i: get_async("/images", {"filter": "malwareCount:>0", "pageSize": i.get("page_size", 50), "sort": "malwareCount:desc"}),
+        "find_images_by_vuln_severity": lambda i: get_async("/images", {"filter": f"vulnerability.severity:{i.get('severity', 'CRITICAL')}", "pageSize": i.get("page_size", 50), "sort": "created:desc"}),
+        "find_containers_by_vuln_severity": lambda i: get_async("/containers", {"filter": f"vulnerability.severity:{i.get('severity', 'CRITICAL')}", "pageSize": i.get("page_size", 50), "sort": "created:desc"}),
+        "list_registries": lambda i: get_async("/registry", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
+        "get_registry_details": lambda i: get_async(f"/registry/{i['registry_id']}"),
+        "get_registry_repositories": lambda i: get_async(f"/registry/{i['registry_id']}/repository", {"pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
+        "get_registry_schedules": lambda i: get_async(f"/registry/{i['registry_id']}/schedule"),
+        "list_sensors": lambda i: get_async("/sensors", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
+        "get_sensor_details": lambda i: get_async(f"/sensors/{i['sensor_id']}"),
+        "list_k8s_clusters": lambda i: get_async("/k8sClusters", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
+        "get_k8s_cluster": lambda i: get_async(f"/k8sClusters/{i['cluster_uid']}"),
+        "list_k8s_pods": lambda i: get_async("/k8sResource/pod", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
+        "list_k8s_namespaces": lambda i: get_async("/k8sResource/namespace", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
+        "get_k8s_postures": lambda i: get_async("/k8s_postures/list", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
+        "get_k8s_posture_count": lambda i: get_async("/k8s_postures/count", {"filter": i.get("filter", "")}),
+        "list_vulnerabilities": lambda i: get_async("/vulnerability", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
+        "get_vulnerability_details": lambda i: get_async(f"/vulnerability/{i['vuln_uuid']}"),
+        "list_controls": lambda i: get_async("/controls", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
+        "list_exceptions": lambda i: get_async("/exception", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
+        "list_secret_detectors": lambda i: get_async("/secretDetector", {"filter": i.get("filter", ""), "pageNumber": i.get("page_number", 1), "pageSize": i.get("page_size", 50)}),
     }
 
     fn = routes.get(name)
     if not fn:
         return json.dumps({"error": f"Unknown tool: {name}"})
     try:
-        result = fn(inputs)
+        result = await fn(inputs)
         return json.dumps(result)
     except Exception as e:
         return json.dumps({"error": str(e)})
@@ -126,8 +148,13 @@ def _call_qualys_tool(name: str, inputs: dict) -> str:
 async def run_agent(user_message: str, history: list) -> AsyncGenerator[str, None]:
     client = get_client()
     messages = history + [{"role": "user", "content": user_message}]
+    turn = 0
+
+    logger.info(f"AGENT  user: {user_message[:120]}")
 
     while True:
+        turn += 1
+        logger.info(f"AGENT  turn {turn}  → calling Bedrock ({BEDROCK_MODEL})")
         response = client.messages.create(
             model=BEDROCK_MODEL,
             max_tokens=4096,
@@ -135,25 +162,30 @@ async def run_agent(user_message: str, history: list) -> AsyncGenerator[str, Non
             tools=TOOLS,
             messages=messages,
         )
+        logger.info(f"AGENT  turn {turn}  ← stop_reason={response.stop_reason}  tokens={response.usage.input_tokens}in/{response.usage.output_tokens}out")
 
-        # stream text blocks
         for block in response.content:
             if hasattr(block, "text"):
                 yield block.text
 
         if response.stop_reason == "end_turn":
+            logger.info("AGENT  done")
             break
 
         if response.stop_reason == "tool_use":
-            tool_results = []
-            for block in response.content:
-                if block.type == "tool_use":
-                    result = _call_qualys_tool(block.name, block.input)
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": block.id,
-                        "content": result,
-                    })
+            tool_blocks = [block for block in response.content if block.type == "tool_use"]
+            logger.info(f"AGENT  executing {len(tool_blocks)} tool call(s) in parallel")
+
+            async def _run_tool(block):
+                logger.info(f"AGENT  tool_call: {block.name}  inputs={json.dumps(block.input)}")
+                result = await _call_qualys_tool(block.name, block.input)
+                return {
+                    "type": "tool_result",
+                    "tool_use_id": block.id,
+                    "content": result,
+                }
+
+            tool_results = await asyncio.gather(*[_run_tool(block) for block in tool_blocks])
 
             messages.append({"role": "assistant", "content": response.content})
             messages.append({"role": "user", "content": tool_results})
