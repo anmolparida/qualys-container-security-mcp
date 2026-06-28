@@ -1,10 +1,60 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, Component } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { streamChat } from '../lib/api'
 import { Send, Bot, User } from 'lucide-react'
 
 interface Message {
   role: 'user' | 'assistant'
   content: string
+}
+
+// Error boundary that falls back to plain text if react-markdown crashes.
+// This prevents the whole chat page from going blank/black on malformed output.
+class MarkdownErrorBoundary extends Component<{ children: React.ReactNode; fallback: React.ReactNode }> {
+  state = { hasError: false }
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+  render() {
+    if (this.state.hasError) return this.props.fallback
+    return this.props.children
+  }
+}
+
+const markdownComponents: any = {
+  table: ({ children }: any) => (
+    <div className="overflow-x-auto my-2">
+      <table className="w-full text-xs border-collapse">{children}</table>
+    </div>
+  ),
+  thead: ({ children }: any) => (
+    <thead style={{ background: 'var(--bg-secondary-alpha)' }}>{children}</thead>
+  ),
+  th: ({ children }: any) => (
+    <th className="text-left px-3 py-2 font-semibold border-b" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>{children}</th>
+  ),
+  td: ({ children }: any) => (
+    <td className="px-3 py-1.5 border-b" style={{ borderColor: 'var(--border)' }}>{children}</td>
+  ),
+  tr: ({ children }: any) => (
+    <tr className="hover:opacity-80 transition-opacity">{children}</tr>
+  ),
+  strong: ({ children }: any) => <strong className="font-semibold text-blue-400">{children}</strong>,
+  p: ({ children }: any) => <p className="mb-2 last:mb-0">{children}</p>,
+  ul: ({ children }: any) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+  ol: ({ children }: any) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+  code: ({ children }: any) => <code className="px-1 py-0.5 rounded text-xs font-mono" style={{ background: 'var(--bg-secondary)' }}>{children}</code>,
+}
+
+function SafeMarkdown({ content }: { content: string }) {
+  return (
+    <MarkdownErrorBoundary fallback={<pre className="whitespace-pre-wrap font-sans text-sm">{content}</pre>}>
+      <ReactMarkdown remarkPlugins={[remarkGfm as any]} components={markdownComponents}>
+        {content}
+      </ReactMarkdown>
+    </MarkdownErrorBoundary>
+  )
 }
 
 const SUGGESTIONS = [
@@ -21,10 +71,32 @@ export default function Chat() {
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const streamBuffer = useRef('')
+  const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  useEffect(() => {
+    return () => {
+      if (flushTimer.current) clearInterval(flushTimer.current)
+    }
+  }, [])
+
+  const flushStreamBuffer = () => {
+    if (!streamBuffer.current) return
+    const chunk = streamBuffer.current
+    streamBuffer.current = ''
+    setMessages(prev => {
+      const updated = [...prev]
+      updated[updated.length - 1] = {
+        ...updated[updated.length - 1],
+        content: updated[updated.length - 1].content + chunk,
+      }
+      return updated
+    })
+  }
 
   const send = async (text: string) => {
     if (!text.trim() || streaming) return
@@ -38,15 +110,10 @@ export default function Chat() {
 
     try {
       const history = messages.map(m => ({ role: m.role, content: m.content }))
+      // Batch chunks to avoid re-rendering markdown on every token
+      flushTimer.current = setInterval(flushStreamBuffer, 80)
       for await (const chunk of streamChat(text, history)) {
-        setMessages(prev => {
-          const updated = [...prev]
-          updated[updated.length - 1] = {
-            ...updated[updated.length - 1],
-            content: updated[updated.length - 1].content + chunk,
-          }
-          return updated
-        })
+        streamBuffer.current += chunk
       }
     } catch (e: any) {
       setMessages(prev => {
@@ -55,6 +122,11 @@ export default function Chat() {
         return updated
       })
     } finally {
+      if (flushTimer.current) {
+        clearInterval(flushTimer.current)
+        flushTimer.current = null
+      }
+      flushStreamBuffer()
       setStreaming(false)
     }
   }
@@ -95,13 +167,19 @@ export default function Chat() {
                 </div>
               )}
               <div
-                className="max-w-[75%] rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap leading-relaxed"
+                className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${m.role === 'user' ? 'max-w-[75%]' : 'max-w-[90%]'}`}
                 style={m.role === 'user'
-                  ? { background: '#2563eb', color: '#ffffff', borderRadius: '1rem 1rem 0.25rem 1rem' }
+                  ? { background: '#2563eb', color: '#ffffff', borderRadius: '1rem 1rem 0.25rem 1rem', whiteSpace: 'pre-wrap' }
                   : { background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', borderRadius: '1rem 1rem 1rem 0.25rem' }
                 }
               >
-                {m.content}
+                {m.role === 'user' ? (
+                  m.content
+                ) : streaming && i === messages.length - 1 && m.role === 'assistant' ? (
+                  <pre className="whitespace-pre-wrap font-sans text-sm">{m.content}</pre>
+                ) : (
+                  <SafeMarkdown content={m.content} />
+                )}
                 {streaming && i === messages.length - 1 && m.role === 'assistant' && m.content === '' && (
                   <span className="inline-flex gap-1 items-center">
                     <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />

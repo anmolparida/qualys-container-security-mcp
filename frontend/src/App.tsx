@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Container, ImageIcon, Database, Network, MessageSquare, Shield, Sun, Moon } from 'lucide-react'
+import { Container, ImageIcon, Database, Network, Sparkles, Shield, Sun, Moon } from 'lucide-react'
 import ContainerOverview from './pages/ContainerOverview'
 import ImageVulnerabilities from './pages/ImageVulnerabilities'
 import RegistryHealth from './pages/RegistryHealth'
@@ -14,11 +14,11 @@ const NAV = [
   { id: 'images' as Tab, label: 'Image Vulns', icon: ImageIcon },
   { id: 'registry' as Tab, label: 'Registry Health', icon: Database },
   { id: 'k8s' as Tab, label: 'K8s Posture', icon: Network },
-  { id: 'chat' as Tab, label: 'AI Assistant', icon: MessageSquare },
+  { id: 'chat' as Tab, label: 'AI Assistant', icon: Sparkles },
 ]
 
 export default function App() {
-  const [tab, setTab] = useState<Tab>('containers')
+  const [tab, setTab] = useState<Tab>('chat')
   const { dark, toggle } = useTheme()
 
   return (
