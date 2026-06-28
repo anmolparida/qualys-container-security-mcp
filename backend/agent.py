@@ -27,7 +27,11 @@ FORMATTING RULES:
 - For container tables include columns: Name, State, Image, Critical, High vulns
 - For image tables include columns: Image, Tag, Critical, High, Medium vulns
 - Keep table rows concise — truncate long strings with ...
-- After a table, add a 1–2 line summary of the key finding"""
+- After a table, add a 1–2 line summary of the key finding
+- When the user asks for charts, graphs, or visualizations, output a chart data block inside a fenced code block marked ```chart. The block must contain valid JSON with: type ("pie", "bar", or "line"), title (string), data (array of objects with "name" and "value"), and optional colors (array of hex strings). Example:
+  ```chart
+  {"type": "pie", "title": "Vulnerability Severity", "data": [{"name": "Critical", "value": 5}, {"name": "High", "value": 12}]}
+  ```"""
 
 
 def _make_client() -> anthropic.AnthropicBedrock:

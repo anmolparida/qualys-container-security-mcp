@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { streamChat } from '../lib/api'
 import { Send, Bot, User } from 'lucide-react'
+import ChartRenderer from '../components/ChartRenderer'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -55,6 +56,34 @@ function SafeMarkdown({ content }: { content: string }) {
       </ReactMarkdown>
     </MarkdownErrorBoundary>
   )
+}
+
+const CHART_BLOCK_RE = /```chart\n?([\s\S]*?)```/g
+
+function renderAssistantContent(content: string) {
+  const parts: React.ReactNode[] = []
+  let lastIndex = 0
+  let match
+
+  while ((match = CHART_BLOCK_RE.exec(content)) !== null) {
+    const [fullMatch, jsonText] = match
+    if (match.index > lastIndex) {
+      parts.push(<SafeMarkdown key={`md-${lastIndex}`} content={content.slice(lastIndex, match.index)} />)
+    }
+    try {
+      const config = JSON.parse(jsonText.trim())
+      parts.push(<ChartRenderer key={`chart-${match.index}`} config={config} />)
+    } catch (e) {
+      parts.push(<pre key={`chart-err-${match.index}`} className="whitespace-pre-wrap text-xs text-red-400">{jsonText}</pre>)
+    }
+    lastIndex = match.index + fullMatch.length
+  }
+
+  if (lastIndex < content.length) {
+    parts.push(<SafeMarkdown key={`md-end`} content={content.slice(lastIndex)} />)
+  }
+
+  return parts.length ? parts : <SafeMarkdown content={content} />
 }
 
 const SUGGESTIONS = [
@@ -178,7 +207,7 @@ export default function Chat() {
                 ) : streaming && i === messages.length - 1 && m.role === 'assistant' ? (
                   <pre className="whitespace-pre-wrap font-sans text-sm">{m.content}</pre>
                 ) : (
-                  <SafeMarkdown content={m.content} />
+                  renderAssistantContent(m.content)
                 )}
                 {streaming && i === messages.length - 1 && m.role === 'assistant' && m.content === '' && (
                   <span className="inline-flex gap-1 items-center">
