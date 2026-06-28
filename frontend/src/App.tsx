@@ -56,8 +56,7 @@ export default function App() {
           {/* Theme toggle */}
           <button
             onClick={toggle}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition-all"
-            style={{ background: 'var(--bg-secondary-alpha)' }}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-[var(--bg-secondary-alpha)] transition-all"
             title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {dark ? <Sun size={15} /> : <Moon size={15} />}
