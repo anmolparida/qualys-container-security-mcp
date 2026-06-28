@@ -192,6 +192,14 @@ export default function Chat() {
     <div className="flex flex-col h-full">
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 pb-4">
+        {streaming && currentFact && (
+          <div className="sticky top-0 z-10 max-w-4xl mx-auto mb-4">
+            <div className="rounded-lg border-l-4 border-blue-500 p-3 text-xs shadow-lg" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+              <span className="font-semibold not-italic" style={{ color: 'var(--text-secondary)' }}>Did you know?</span>{' '}
+              <span className="italic">{currentFact}</span>
+            </div>
+          </div>
+        )}
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center gap-8">
             <div className="text-center space-y-3">
@@ -245,18 +253,13 @@ export default function Chat() {
                     ) : (
                       renderAssistantContent(m.content)
                     )}
-                    {streaming && i === messages.length - 1 && m.role === 'assistant' && m.content === '' && (
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <div className="relative w-5 h-5">
-                            <span className="absolute inset-0 rounded-full border-2 border-slate-500/30" />
-                            <span className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-400 animate-spin" />
-                          </div>
-                          <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Analyzing your Qualys data...</span>
+                    {streaming && i === messages.length - 1 && m.role === 'assistant' && (
+                      <div className="flex items-center gap-3 mt-3 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
+                        <div className="relative w-5 h-5">
+                          <span className="absolute inset-0 rounded-full border-2 border-slate-500/30" />
+                          <span className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-400 animate-spin" />
                         </div>
-                        <div className="rounded-lg border-l-4 border-blue-500 p-3 text-xs italic" style={{ background: 'var(--bg-secondary-alpha)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
-                          <span className="font-semibold not-italic" style={{ color: 'var(--text-secondary)' }}>Did you know?</span> {currentFact}
-                        </div>
+                        <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Analyzing your Qualys data...</span>
                       </div>
                     )}
                   </div>
