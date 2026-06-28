@@ -6,6 +6,7 @@ An AI-powered container security intelligence assistant built on top of the **Qu
 
 - [Overview](#overview)
 - [Architecture](#architecture)
+- [How It Works](#how-it-works)
 - [Prerequisites](#prerequisites)
 - [Configuration](#configuration)
 - [Running Locally](#running-locally)
@@ -52,6 +53,24 @@ The backend uses **Claude on Amazon Bedrock** for reasoning and tool selection, 
 - **Backend**: FastAPI + Uvicorn + Anthropic Bedrock client + custom agent loop
 - **MCP Server**: Python FastMCP server that wraps the Qualys Container Security REST API
 - **Qualys API**: Uses the official Qualys Container Security API endpoints for live data
+
+## How It Works
+
+When a user asks a question in the AI Assistant chat, the following steps happen:
+
+1. **User submits a prompt** in the React frontend at `http://localhost:5173`.
+2. The frontend sends the message to the FastAPI backend via a POST request to `/api/chat/` with a streaming response.
+3. The backend receives the message in `backend/routes/chat.py` and starts the agent loop in `backend/agent.py`.
+4. The agent constructs a conversation with the system prompt and the user's message, then calls **Claude on Amazon Bedrock**.
+5. Claude decides whether it needs more data. If it does, it returns one or more `tool_use` requests.
+6. The agent executes the requested Qualys API calls in parallel using `asyncio.gather`. Each call goes through the shared async HTTP client in `backend/qualys_client.py`.
+7. The raw API responses are returned as JSON `tool_result` blocks to Claude.
+8. Claude reasons over the data and writes a final answer. It uses markdown tables for lists and can emit ````chart` blocks for pie, bar, or line charts.
+9. The answer is streamed back to the frontend chunk by chunk.
+10. The frontend renders the streaming text, then parses any markdown tables and chart blocks into styled tables and Recharts visualizations.
+11. The conversation history is kept in the current browser session but is not persisted to any database.
+
+Dashboard tabs (Containers, Images, Registry, K8s) bypass the LLM and call the Qualys API directly through the backend for faster summary views.
 
 ## Prerequisites
 
