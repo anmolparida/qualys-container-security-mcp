@@ -15,5 +15,9 @@ read -r BACKEND_PID FRONTEND_PID < "$PID_FILE"
 kill "$BACKEND_PID" 2>/dev/null && echo "Stopped backend (PID $BACKEND_PID)" || echo "Backend already stopped"
 kill "$FRONTEND_PID" 2>/dev/null && echo "Stopped frontend (PID $FRONTEND_PID)" || echo "Frontend already stopped"
 
+# Force-free ports in case processes lingered
+lsof -ti:8000 | xargs kill -9 2>/dev/null && echo "Freed port 8000" || true
+lsof -ti:5173 | xargs kill -9 2>/dev/null && echo "Freed port 5173" || true
+
 rm -f "$PID_FILE"
 echo "Done."

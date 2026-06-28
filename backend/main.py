@@ -1,7 +1,18 @@
 import os
+import logging
 from dotenv import load_dotenv
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s  %(name)-10s  %(message)s",
+    datefmt="%H:%M:%S",
+)
+# Quieten noisy libraries
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
