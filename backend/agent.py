@@ -31,7 +31,8 @@ FORMATTING RULES:
 - When the user asks for charts, graphs, or visualizations, output a chart data block inside a fenced code block marked ```chart. The block must contain valid JSON with: type ("pie", "bar", or "line"), title (string), data (array of objects with "name" and "value"), and optional colors (array of hex strings). Example:
   ```chart
   {"type": "pie", "title": "Vulnerability Severity", "data": [{"name": "Critical", "value": 5}, {"name": "High", "value": 12}]}
-  ```"""
+  ```
+- Useful documentation references: Qualys Container Security (https://docs.qualys.com/en/cs/latest/get_started/cs_docs.htm), Container Scanner (https://docs.qualys.com/en/qscanner/latest/qscanner_usage/use_qscanner.htm), CyberSecurity Risk Rating (https://docs.qualys.com/en/crs/latest/get_started/get_started.htm)"""
 
 
 def _make_client() -> anthropic.AnthropicBedrock:

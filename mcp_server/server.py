@@ -269,6 +269,26 @@ def list_secret_detectors(filter: str = "", page_number: int = 1, page_size: int
     return get("/secretDetector", {"filter": filter, "pageNumber": page_number, "pageSize": page_size})
 
 
+# ── Documentation Resources ─────────────────────────────────────────────────────
+
+@mcp.resource("docs://qualys-container-security")
+def qualys_container_security_docs() -> str:
+    """Qualys Container Security product documentation."""
+    return "https://docs.qualys.com/en/cs/latest/get_started/cs_docs.htm"
+
+
+@mcp.resource("docs://qualys-container-scanner")
+def qualys_container_scanner_docs() -> str:
+    """Qualys Container Scanner usage documentation."""
+    return "https://docs.qualys.com/en/qscanner/latest/qscanner_usage/use_qscanner.htm"
+
+
+@mcp.resource("docs://qualys-cybersecurity-risk-rating")
+def qualys_crs_docs() -> str:
+    """Qualys CyberSecurity Risk Rating (CRS) getting started documentation."""
+    return "https://docs.qualys.com/en/crs/latest/get_started/get_started.htm"
+
+
 if __name__ == "__main__":
     import dotenv, os
     dotenv.load_dotenv()
