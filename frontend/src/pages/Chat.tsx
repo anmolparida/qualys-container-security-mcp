@@ -231,9 +231,17 @@ export default function Chat() {
                 <div className={`max-w-[85%] md:max-w-[75%] ${m.role === 'user' ? 'order-1' : 'order-2'}`}>
                   {m.role === 'user' && m.fact && (
                     <div className="mb-2 text-right">
-                      <div className="inline-block rounded-lg border-l-4 border-blue-500 p-2.5 text-xs text-left max-w-full" style={{ background: 'var(--bg-secondary-alpha)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
-                        <span className="font-semibold not-italic" style={{ color: 'var(--text-secondary)' }}>Did you know?</span>{' '}
-                        <span className="italic">{m.fact}</span>
+                      <div className="inline-flex items-start gap-2 rounded-lg border-l-4 border-blue-500 p-2.5 text-xs text-left max-w-full" style={{ background: 'var(--bg-secondary-alpha)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+                        <span className="relative flex h-2 w-2 mt-1 flex-shrink-0 items-center justify-center">
+                          <span className="absolute inline-flex h-4 w-4 rounded-full bg-blue-400 opacity-30 animate-smooth-ripple" style={{ animationDelay: '0s' }} />
+                          <span className="absolute inline-flex h-4 w-4 rounded-full bg-blue-400 opacity-25 animate-smooth-ripple" style={{ animationDelay: '1.3s' }} />
+                          <span className="absolute inline-flex h-4 w-4 rounded-full bg-blue-400 opacity-20 animate-smooth-ripple" style={{ animationDelay: '2.6s' }} />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
+                        </span>
+                        <span>
+                          <span className="font-semibold not-italic" style={{ color: 'var(--text-secondary)' }}>Did you know?</span>{' '}
+                          <span className="italic">{m.fact}</span>
+                        </span>
                       </div>
                     </div>
                   )}
