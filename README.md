@@ -100,10 +100,16 @@ QUALYS_PLATFORM_URL=https://gateway.qg2.apps.qualys.com
 AWS_ACCESS_KEY_ID=your-aws-access-key
 AWS_SECRET_ACCESS_KEY=your-aws-secret-key
 AWS_REGION=us-east-1
-BEDROCK_MODEL_ID=us.anthropic.claude-sonnet-4-5-20250929-v1:0
+BEDROCK_MODEL_ID=us.anthropic.claude-3-5-sonnet-20241022-v2:0
 ```
 
 > **Note**: `.env` is listed in `.gitignore` and will **never** be committed. Only `.env.example` and `.env.template` are tracked as templates.
+
+> **Model IDs**: Bedrock model IDs change over time. Use the AWS CLI to find currently available models in your region:
+> ```bash
+> aws bedrock list-foundation-models --by-provider anthropic --region $AWS_REGION --output table
+> ```
+> Look for `anthropic.claude-3-5-sonnet-*` or `us.anthropic.claude-3-5-sonnet-*` (cross-region inference) entries.
 
 ### AWS Authentication Options
 

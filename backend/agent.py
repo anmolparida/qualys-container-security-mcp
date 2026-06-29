@@ -8,7 +8,7 @@ import anthropic
 
 logger = logging.getLogger("agent")
 
-BEDROCK_MODEL = os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-5-20250929-v1:0")
+BEDROCK_MODEL = os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-3-5-sonnet-20241022-v2:0")
 
 SYSTEM_PROMPT = """You are a Qualys Container Security assistant. You help security teams understand
 their container environment by answering questions about containers, images, vulnerabilities,
