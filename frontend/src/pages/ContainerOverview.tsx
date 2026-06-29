@@ -3,7 +3,10 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recha
 import { fetchDashboard } from '../lib/api'
 import StatCard from '../components/StatCard'
 import SeverityBadge from '../components/SeverityBadge'
-import { RefreshCw, Box, Play, Square, AlertTriangle } from 'lucide-react'
+import DashboardSkeleton from '../components/DashboardSkeleton'
+import EmptyState from '../components/EmptyState'
+import ChartExport from '../components/ChartExport'
+import { RefreshCw, Box, Play, Square, AlertTriangle, Container } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 
 const SEV_COLORS: Record<string, string> = {
@@ -34,7 +37,7 @@ export default function ContainerOverview() {
 
   useEffect(() => { load() }, [])
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-slate-400">Loading containers...</div>
+  if (loading) return <DashboardSkeleton statCount={4} />
   if (error) return <div className="text-red-400 p-6">Error: {error}</div>
 
   const pieData = Object.entries(data.severity_breakdown)
@@ -65,8 +68,7 @@ export default function ContainerOverview() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="rounded-xl p-5 border" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
-          <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-secondary)' }}>Vulnerability Severity Breakdown</h3>
+        <ChartExport title="Vulnerability Severity Breakdown" filename="container-severity.svg">
           {pieData.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
@@ -76,30 +78,34 @@ export default function ContainerOverview() {
                   ))}
                 </Pie>
                 <Tooltip contentStyle={tooltipStyle} />
+                <Legend />
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-slate-500 text-sm">No vulnerability data</p>
+            <EmptyState icon={Container} title="No container vulnerability data" />
           )}
-        </div>
+        </ChartExport>
 
         <div className="rounded-xl p-5 border" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
           <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-secondary)' }}>Top Risky Containers</h3>
-          <div className="space-y-3 overflow-y-auto max-h-56">
-            {data.top_risky_containers.length === 0 && <p className="text-slate-500 text-sm">No data</p>}
-            {data.top_risky_containers.map((c: any, i: number) => (
-              <div key={i} className="flex items-center justify-between text-sm border-b pb-2" style={{ borderColor: 'var(--border)' }}>
-                <div>
-                  <p className="font-medium truncate max-w-[180px]" style={{ color: 'var(--text-primary)' }}>{c.name}</p>
-                  <p className="text-xs text-slate-500">{c.state}</p>
+          {data.top_risky_containers.length === 0 ? (
+            <EmptyState icon={Container} title="No risky containers" />
+          ) : (
+            <div className="space-y-3 overflow-y-auto max-h-56">
+              {data.top_risky_containers.map((c: any, i: number) => (
+                <div key={i} className="flex items-center justify-between text-sm border-b pb-2" style={{ borderColor: 'var(--border)' }}>
+                  <div>
+                    <p className="font-medium truncate max-w-[180px]" style={{ color: 'var(--text-primary)' }}>{c.name}</p>
+                    <p className="text-xs text-slate-500">{c.state}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    {c.critical > 0 && <SeverityBadge severity="CRITICAL" count={c.critical} />}
+                    {c.high > 0 && <SeverityBadge severity="HIGH" count={c.high} />}
+                  </div>
                 </div>
-                <div className="flex gap-1">
-                  {c.critical > 0 && <SeverityBadge severity="CRITICAL" count={c.critical} />}
-                  {c.high > 0 && <SeverityBadge severity="HIGH" count={c.high} />}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

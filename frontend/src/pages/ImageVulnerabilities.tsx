@@ -3,6 +3,9 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { fetchDashboard } from '../lib/api'
 import StatCard from '../components/StatCard'
 import SeverityBadge from '../components/SeverityBadge'
+import DashboardSkeleton from '../components/DashboardSkeleton'
+import EmptyState from '../components/EmptyState'
+import ChartExport from '../components/ChartExport'
 import { RefreshCw, Image, AlertTriangle, Flame, ShieldAlert } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 
@@ -26,7 +29,7 @@ export default function ImageVulnerabilities() {
 
   useEffect(() => { load() }, [])
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-slate-400">Loading image data...</div>
+  if (loading) return <DashboardSkeleton statCount={4} />
   if (error) return <div className="text-red-400 p-6">Error: {error}</div>
 
   const { severity_totals, top_vulnerable_images, total_images } = data
@@ -71,8 +74,7 @@ export default function ImageVulnerabilities() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="rounded-xl p-5 border" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
-          <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-secondary)' }}>Severity Distribution</h3>
+        <ChartExport title="Severity Distribution" filename="image-severity.svg">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={barData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
               <XAxis dataKey="name" tick={{ fill: tickColor, fontSize: 12 }} />
@@ -83,26 +85,29 @@ export default function ImageVulnerabilities() {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </ChartExport>
 
         <div className="rounded-xl p-5 border" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
           <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-secondary)' }}>Top Vulnerable Images</h3>
-          <div className="space-y-3 overflow-y-auto max-h-56">
-            {top_vulnerable_images.length === 0 && <p className="text-slate-500 text-sm">No data</p>}
-            {top_vulnerable_images.map((img: any, i: number) => (
-              <div key={i} className="flex items-center justify-between text-sm border-b pb-2" style={{ borderColor: 'var(--border)' }}>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>{img.name || img.sha?.slice(0, 12)}</p>
-                  <p className="text-xs text-slate-500">{img.tag}</p>
+          {top_vulnerable_images.length === 0 ? (
+            <EmptyState icon={Image} title="No vulnerable images" />
+          ) : (
+            <div className="space-y-3 overflow-y-auto max-h-56">
+              {top_vulnerable_images.map((img: any, i: number) => (
+                <div key={i} className="flex items-center justify-between text-sm border-b pb-2" style={{ borderColor: 'var(--border)' }}>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>{img.name || img.sha?.slice(0, 12)}</p>
+                    <p className="text-xs text-slate-500">{img.tag}</p>
+                  </div>
+                  <div className="flex gap-1 ml-2 flex-shrink-0">
+                    {img.critical > 0 && <SeverityBadge severity="CRITICAL" count={img.critical} />}
+                    {img.high > 0 && <SeverityBadge severity="HIGH" count={img.high} />}
+                    {img.medium > 0 && <SeverityBadge severity="MEDIUM" count={img.medium} />}
+                  </div>
                 </div>
-                <div className="flex gap-1 ml-2 flex-shrink-0">
-                  {img.critical > 0 && <SeverityBadge severity="CRITICAL" count={img.critical} />}
-                  {img.high > 0 && <SeverityBadge severity="HIGH" count={img.high} />}
-                  {img.medium > 0 && <SeverityBadge severity="MEDIUM" count={img.medium} />}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

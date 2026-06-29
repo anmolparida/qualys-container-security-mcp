@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { fetchDashboard } from '../lib/api'
 import StatCard from '../components/StatCard'
+import DataTable from '../components/DataTable'
+import DashboardSkeleton from '../components/DashboardSkeleton'
+import EmptyState from '../components/EmptyState'
 import { RefreshCw, Server, CheckCircle, XCircle, ListChecks, Network } from 'lucide-react'
 
 export default function K8sPosture() {
@@ -22,13 +25,44 @@ export default function K8sPosture() {
 
   useEffect(() => { load() }, [])
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-slate-400">Loading K8s data...</div>
+  if (loading) return <DashboardSkeleton statCount={4} />
   if (error) return <div className="text-red-400 p-6">Error: {error}</div>
 
   const posture = data.posture_summary ?? {}
   const passed = posture.passed ?? posture.PASS ?? 0
   const failed = posture.failed ?? posture.FAIL ?? 0
   const total = passed + failed
+
+  const clusterColumns = [
+    {
+      key: 'name',
+      header: 'Cluster',
+      accessor: (c: any) => c.name ?? c.uid,
+      render: (c: any) => (
+        <div className="flex items-center gap-3">
+          <Server size={16} className="text-blue-400 flex-shrink-0" />
+          <div>
+            <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>{c.name ?? c.uid}</p>
+            <p className="text-xs text-slate-500">v{c.version} · {c.node_count} nodes</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'sensor_status',
+      header: 'Sensor Status',
+      accessor: (c: any) => c.sensor_status ?? 'Unknown',
+      render: (c: any) => (
+        <span className={`text-xs font-semibold px-2 py-1 rounded ${
+          (c.sensor_status ?? '').toUpperCase() === 'ACTIVE'
+            ? 'bg-green-500/20 text-green-400'
+            : 'bg-slate-600/40 text-slate-400'
+        }`}>
+          {c.sensor_status ?? 'Unknown'}
+        </span>
+      ),
+    },
+  ]
 
   return (
     <div className="space-y-6">
@@ -63,34 +97,17 @@ export default function K8sPosture() {
         </div>
       )}
 
-      <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
-        <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary-alpha)' }}>
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Clusters</h3>
-        </div>
-        {data.clusters.length === 0 && (
-          <p className="px-4 py-6 text-slate-500 text-center text-sm">No clusters found</p>
-        )}
-        <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
-          {data.clusters.map((c: any, i: number) => (
-            <div key={i} className="px-4 py-3 flex items-center justify-between hover:opacity-80 transition-colors" style={{ borderColor: 'var(--border)' }}>
-              <div className="flex items-center gap-3">
-                <Server size={16} className="text-blue-400 flex-shrink-0" />
-                <div>
-                  <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>{c.name ?? c.uid}</p>
-                  <p className="text-xs text-slate-500">v{c.version} · {c.node_count} nodes</p>
-                </div>
-              </div>
-              <span className={`text-xs font-semibold px-2 py-1 rounded ${
-                (c.sensor_status ?? '').toUpperCase() === 'ACTIVE'
-                  ? 'bg-green-500/20 text-green-400'
-                  : 'bg-slate-600/40 text-slate-400'
-              }`}>
-                {c.sensor_status ?? 'Unknown'}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
+      {data.clusters.length === 0 ? (
+        <EmptyState icon={Server} title="No clusters found" />
+      ) : (
+        <DataTable
+          title="Clusters"
+          columns={clusterColumns}
+          data={data.clusters}
+          filename="clusters.csv"
+          searchPlaceholder="Search clusters..."
+        />
+      )}
     </div>
   )
 }

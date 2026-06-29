@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { fetchDashboard } from '../lib/api'
 import StatCard from '../components/StatCard'
+import DataTable from '../components/DataTable'
+import DashboardSkeleton from '../components/DashboardSkeleton'
+import EmptyState from '../components/EmptyState'
 import { RefreshCw, CheckCircle, XCircle, Clock, Database, HeartPulse, AlertCircle } from 'lucide-react'
 
 function StatusIcon({ status }: { status: string }) {
@@ -29,10 +32,32 @@ export default function RegistryHealth() {
 
   useEffect(() => { load() }, [])
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-slate-400">Loading registry data...</div>
+  if (loading) return <DashboardSkeleton statCount={3} />
   if (error) return <div className="text-red-400 p-6">Error: {error}</div>
 
   const healthy = data.registries.filter((r: any) => ['SUCCESS', 'ACTIVE', 'COMPLETED'].includes((r.state ?? '').toUpperCase())).length
+
+  const columns = [
+    { key: 'name', header: 'Registry', accessor: (r: any) => r.name },
+    { key: 'type', header: 'Type', accessor: (r: any) => r.type ?? '—' },
+    {
+      key: 'state',
+      header: 'Status',
+      accessor: (r: any) => r.state ?? 'Unknown',
+      render: (r: any) => (
+        <div className="flex items-center gap-2">
+          <StatusIcon status={r.state ?? ''} />
+          <span style={{ color: 'var(--text-secondary)' }}>{r.state ?? 'Unknown'}</span>
+        </div>
+      ),
+    },
+    { key: 'total_images', header: 'Total Images', accessor: (r: any) => r.total_images ?? '—' },
+    {
+      key: 'last_scanned',
+      header: 'Last Scanned',
+      accessor: (r: any) => r.last_scanned ? new Date(r.last_scanned).toLocaleString() : '—',
+    },
+  ]
 
   return (
     <div className="space-y-6">
@@ -49,40 +74,17 @@ export default function RegistryHealth() {
         <StatCard label="Unhealthy / Unknown" value={data.total - healthy} color="text-red-400" icon={AlertCircle} accent="from-red-500 to-red-600" />
       </div>
 
-      <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b" style={{ color: 'var(--text-muted)', borderColor: 'var(--border)', background: 'var(--bg-secondary-alpha)' }}>
-              <th className="text-left px-4 py-3">Registry</th>
-              <th className="text-left px-4 py-3">Type</th>
-              <th className="text-left px-4 py-3">Status</th>
-              <th className="text-left px-4 py-3">Total Images</th>
-              <th className="text-left px-4 py-3">Last Scanned</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.registries.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-6 text-slate-500 text-center">No registries found</td></tr>
-            )}
-            {data.registries.map((r: any, i: number) => (
-              <tr key={i} className="border-b transition-colors hover:opacity-80" style={{ borderColor: 'var(--border)' }}>
-                <td className="px-4 py-3 font-medium truncate max-w-[200px]" style={{ color: 'var(--text-primary)' }}>{r.name}</td>
-                <td className="px-4 py-3 text-slate-400">{r.type ?? '—'}</td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <StatusIcon status={r.state ?? ''} />
-                    <span style={{ color: 'var(--text-secondary)' }}>{r.state ?? 'Unknown'}</span>
-                  </div>
-                </td>
-                <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>{r.total_images ?? '—'}</td>
-                <td className="px-4 py-3 text-xs text-slate-400">
-                  {r.last_scanned ? new Date(r.last_scanned).toLocaleString() : '—'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {data.registries.length === 0 ? (
+        <EmptyState icon={Database} title="No registries found" />
+      ) : (
+        <DataTable
+          title="Registries"
+          columns={columns}
+          data={data.registries}
+          filename="registries.csv"
+          searchPlaceholder="Search registries..."
+        />
+      )}
     </div>
   )
 }
