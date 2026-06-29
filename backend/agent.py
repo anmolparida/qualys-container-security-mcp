@@ -3,7 +3,7 @@ import json
 import logging
 import asyncio
 import httpx
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Any
 import anthropic
 
 logger = logging.getLogger("agent")
@@ -155,6 +155,37 @@ MAX_MESSAGE_CHARS = 12000
 MAX_TOOL_RESULT_CHARS = 4000
 
 
+def _truncate_text(text: str, limit: int) -> str:
+    if len(text) <= limit:
+        return text
+    return text[:limit] + "\n... [truncated]"
+
+
+def _truncate_content(content: Any) -> Any:
+    """Truncate message content whether it's a string, list of dicts, or Anthropic content blocks."""
+    if isinstance(content, str):
+        return _truncate_text(content, MAX_MESSAGE_CHARS)
+
+    if not isinstance(content, list):
+        return content
+
+    trimmed = []
+    for item in content:
+        # Tool result list from user messages
+        if isinstance(item, dict) and item.get("type") == "tool_result":
+            item = {
+                **item,
+                "content": _truncate_text(item.get("content", ""), MAX_TOOL_RESULT_CHARS),
+            }
+        # Anthropic content block (TextBlock, ToolUseBlock)
+        elif hasattr(item, "type") and getattr(item, "type") == "text" and hasattr(item, "text"):
+            text = getattr(item, "text", "")
+            if len(text) > MAX_MESSAGE_CHARS:
+                item.text = text[:MAX_MESSAGE_CHARS] + "\n... [truncated]"
+        trimmed.append(item)
+    return trimmed
+
+
 def _truncate_messages(messages: list) -> list:
     """Keep the conversation within the model's context window.
 
@@ -162,22 +193,7 @@ def _truncate_messages(messages: list) -> list:
     - Keep the last MAX_HISTORY_MESSAGES turns.
     - Truncate oversized assistant/user text and tool result JSON.
     """
-    trimmed = []
-    for msg in messages:
-        content = msg.get("content")
-        if isinstance(content, list) and len(content) > 0 and content[0].get("type") == "tool_result":
-            trimmed_results = []
-            for result in content:
-                text = result.get("content", "")
-                if len(text) > MAX_TOOL_RESULT_CHARS:
-                    text = text[:MAX_TOOL_RESULT_CHARS] + "\n... [truncated]"
-                trimmed_results.append({**result, "content": text})
-            trimmed.append({**msg, "content": trimmed_results})
-        elif isinstance(content, str) and len(content) > MAX_MESSAGE_CHARS:
-            trimmed.append({**msg, "content": content[:MAX_MESSAGE_CHARS] + "\n... [truncated]"})
-        else:
-            trimmed.append(msg)
-
+    trimmed = [{**msg, "content": _truncate_content(msg.get("content"))} for msg in messages]
     return trimmed[-MAX_HISTORY_MESSAGES:]
 
 
