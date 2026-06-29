@@ -42,7 +42,15 @@ const markdownComponents: any = {
   tr: ({ children }: any) => (
     <tr className="hover:opacity-80 transition-opacity">{children}</tr>
   ),
+  h1: ({ children }: any) => <h1 className="text-lg font-bold text-blue-400 mb-2 mt-3">{children}</h1>,
+  h2: ({ children }: any) => <h2 className="text-base font-bold text-blue-400 mb-2 mt-3">{children}</h2>,
+  h3: ({ children }: any) => <h3 className="text-sm font-bold text-blue-400 mb-1 mt-2">{children}</h3>,
   strong: ({ children }: any) => <strong className="font-semibold text-blue-400">{children}</strong>,
+  a: ({ href, children }: any) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-400 transition-colors">
+      {children}
+    </a>
+  ),
   p: ({ children }: any) => <p className="mb-2 last:mb-0">{children}</p>,
   ul: ({ children }: any) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
   ol: ({ children }: any) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
@@ -220,7 +228,7 @@ export default function Chat() {
             </div>
           </div>
         ) : (
-          <div className="space-y-5 max-w-4xl mx-auto pt-4">
+          <div className="space-y-5 max-w-6xl mx-auto pt-4">
             {messages.map((m, i) => (
               <div key={i} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {m.role === 'assistant' && (
@@ -228,7 +236,7 @@ export default function Chat() {
                     <Bot size={16} className="text-white" />
                   </div>
                 )}
-                <div className={`max-w-[85%] md:max-w-[75%] ${m.role === 'user' ? 'order-1' : 'order-2'}`}>
+                <div className={`max-w-[95%] md:max-w-[95%] ${m.role === 'user' ? 'order-1' : 'order-2'}`}>
                   {m.role === 'user' && m.fact && (
                     <div className="mb-2 text-right">
                       <div className="inline-flex items-start gap-2 rounded-lg border-l-4 border-blue-500 p-2.5 text-xs text-left max-w-full" style={{ background: 'var(--bg-secondary-alpha)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
@@ -288,7 +296,7 @@ export default function Chat() {
 
       {/* Input area */}
       <div className="border-t flex-shrink-0 p-4" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
-        <div className="max-w-4xl mx-auto flex gap-3">
+        <div className="max-w-6xl mx-auto flex gap-3">
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
