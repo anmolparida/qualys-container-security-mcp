@@ -41,6 +41,12 @@ body {
   transition: background-color 0.2s, color 0.2s;
 }
 
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Sora', 'Inter', system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-card); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
