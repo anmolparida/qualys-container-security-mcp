@@ -150,16 +150,48 @@ async def _call_qualys_tool(name: str, inputs: dict) -> str:
         return json.dumps({"error": str(e)})
 
 
+MAX_HISTORY_MESSAGES = 6
+MAX_MESSAGE_CHARS = 12000
+MAX_TOOL_RESULT_CHARS = 4000
+
+
+def _truncate_messages(messages: list) -> list:
+    """Keep the conversation within the model's context window.
+
+    - Always preserve the most recent user message.
+    - Keep the last MAX_HISTORY_MESSAGES turns.
+    - Truncate oversized assistant/user text and tool result JSON.
+    """
+    trimmed = []
+    for msg in messages:
+        content = msg.get("content")
+        if isinstance(content, list) and len(content) > 0 and content[0].get("type") == "tool_result":
+            trimmed_results = []
+            for result in content:
+                text = result.get("content", "")
+                if len(text) > MAX_TOOL_RESULT_CHARS:
+                    text = text[:MAX_TOOL_RESULT_CHARS] + "\n... [truncated]"
+                trimmed_results.append({**result, "content": text})
+            trimmed.append({**msg, "content": trimmed_results})
+        elif isinstance(content, str) and len(content) > MAX_MESSAGE_CHARS:
+            trimmed.append({**msg, "content": content[:MAX_MESSAGE_CHARS] + "\n... [truncated]"})
+        else:
+            trimmed.append(msg)
+
+    return trimmed[-MAX_HISTORY_MESSAGES:]
+
+
 async def run_agent(user_message: str, history: list) -> AsyncGenerator[str, None]:
     client = get_client()
-    messages = history + [{"role": "user", "content": user_message}]
+    messages = _truncate_messages(history + [{"role": "user", "content": user_message}])
     turn = 0
 
     logger.info(f"AGENT  user: {user_message[:120]}")
 
     while True:
         turn += 1
-        logger.info(f"AGENT  turn {turn}  → calling Bedrock ({BEDROCK_MODEL})")
+        messages = _truncate_messages(messages)
+        logger.info(f"AGENT  turn {turn}  → calling Bedrock ({BEDROCK_MODEL})  messages={len(messages)}")
         response = client.messages.create(
             model=BEDROCK_MODEL,
             max_tokens=4096,
