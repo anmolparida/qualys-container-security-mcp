@@ -1,32 +1,17 @@
-import { useEffect, useState } from 'react'
-import { fetchDashboard } from '../lib/api'
+import { useDashboard } from '../hooks/useDashboard'
 import StatCard from '../components/StatCard'
 import DataTable from '../components/DataTable'
 import DashboardSkeleton from '../components/DashboardSkeleton'
 import EmptyState from '../components/EmptyState'
 import { RefreshCw, Server, CheckCircle, XCircle, ListChecks, Network } from 'lucide-react'
+import type { K8sPosture as K8sPostureType } from '../types/api'
 
 export default function K8sPosture() {
-  const [data, setData] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const { data, state, error, refresh } = useDashboard<K8sPostureType>('k8s/posture')
 
-  const load = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      setData(await fetchDashboard('k8s/posture'))
-    } catch (e: any) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { load() }, [])
-
-  if (loading) return <DashboardSkeleton statCount={4} />
-  if (error) return <div className="text-red-400 p-6">Error: {error}</div>
+  if (state === 'loading') return <DashboardSkeleton statCount={4} />
+  if (state === 'error') return <div className="text-red-400 p-6">Error: {error}</div>
+  if (!data) return null
 
   const posture = data.posture_summary ?? {}
   const passed = posture.passed ?? posture.PASS ?? 0
@@ -68,7 +53,7 @@ export default function K8sPosture() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">K8s Cluster Posture</h2>
-        <button onClick={load} className="flex items-center gap-2 text-sm text-slate-400 hover:text-blue-400 transition-colors">
+        <button onClick={refresh} className="flex items-center gap-2 text-sm text-slate-400 hover:text-blue-400 transition-colors">
           <RefreshCw size={14} /> Refresh
         </button>
       </div>

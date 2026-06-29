@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { fetchDashboard } from '../lib/api'
+import { useDashboard } from '../hooks/useDashboard'
 import StatCard from '../components/StatCard'
 import SeverityBadge from '../components/SeverityBadge'
 import DashboardSkeleton from '../components/DashboardSkeleton'
@@ -8,6 +7,7 @@ import EmptyState from '../components/EmptyState'
 import ChartExport from '../components/ChartExport'
 import { RefreshCw, Box, Play, Square, AlertTriangle, Container } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
+import type { ContainerOverview as ContainerOverviewType } from '../types/api'
 
 const SEV_COLORS: Record<string, string> = {
   CRITICAL: '#ef4444',
@@ -18,27 +18,12 @@ const SEV_COLORS: Record<string, string> = {
 }
 
 export default function ContainerOverview() {
-  const [data, setData] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const { data, state, error, refresh } = useDashboard<ContainerOverviewType>('containers/overview')
   const { dark } = useTheme()
 
-  const load = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      setData(await fetchDashboard('containers/overview'))
-    } catch (e: any) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { load() }, [])
-
-  if (loading) return <DashboardSkeleton statCount={4} />
-  if (error) return <div className="text-red-400 p-6">Error: {error}</div>
+  if (state === 'loading') return <DashboardSkeleton statCount={4} />
+  if (state === 'error') return <div className="text-red-400 p-6">Error: {error}</div>
+  if (!data) return null
 
   const pieData = Object.entries(data.severity_breakdown)
     .filter(([, v]) => (v as number) > 0)
@@ -55,7 +40,7 @@ export default function ContainerOverview() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Container Overview</h2>
-        <button onClick={load} className="flex items-center gap-2 text-sm text-slate-400 hover:text-blue-400 transition-colors">
+        <button onClick={refresh} className="flex items-center gap-2 text-sm text-slate-400 hover:text-blue-400 transition-colors">
           <RefreshCw size={14} /> Refresh
         </button>
       </div>

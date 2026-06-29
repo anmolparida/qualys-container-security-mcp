@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { fetchDashboard } from '../lib/api'
+import { useDashboard } from '../hooks/useDashboard'
 import StatCard from '../components/StatCard'
 import SeverityBadge from '../components/SeverityBadge'
 import DashboardSkeleton from '../components/DashboardSkeleton'
@@ -8,29 +7,15 @@ import EmptyState from '../components/EmptyState'
 import ChartExport from '../components/ChartExport'
 import { RefreshCw, Image, AlertTriangle, Flame, ShieldAlert } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
+import type { ImageVulnerabilities as ImageVulnerabilitiesType } from '../types/api'
 
 export default function ImageVulnerabilities() {
-  const [data, setData] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const { data, state, error, refresh } = useDashboard<ImageVulnerabilitiesType>('images/vulnerabilities')
   const { dark } = useTheme()
 
-  const load = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      setData(await fetchDashboard('images/vulnerabilities'))
-    } catch (e: any) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { load() }, [])
-
-  if (loading) return <DashboardSkeleton statCount={4} />
-  if (error) return <div className="text-red-400 p-6">Error: {error}</div>
+  if (state === 'loading') return <DashboardSkeleton statCount={4} />
+  if (state === 'error') return <div className="text-red-400 p-6">Error: {error}</div>
+  if (!data) return null
 
   const { severity_totals, top_vulnerable_images, total_images } = data
 
@@ -61,7 +46,7 @@ export default function ImageVulnerabilities() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Image Vulnerabilities</h2>
-        <button onClick={load} className="flex items-center gap-2 text-sm text-slate-400 hover:text-blue-400 transition-colors">
+        <button onClick={refresh} className="flex items-center gap-2 text-sm text-slate-400 hover:text-blue-400 transition-colors">
           <RefreshCw size={14} /> Refresh
         </button>
       </div>

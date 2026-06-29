@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
-import { fetchDashboard } from '../lib/api'
+import { useDashboard } from '../hooks/useDashboard'
 import StatCard from '../components/StatCard'
 import DataTable from '../components/DataTable'
 import DashboardSkeleton from '../components/DashboardSkeleton'
 import EmptyState from '../components/EmptyState'
 import { RefreshCw, CheckCircle, XCircle, Clock, Database, HeartPulse, AlertCircle } from 'lucide-react'
+import type { RegistryHealth as RegistryHealthType } from '../types/api'
 
 function StatusIcon({ status }: { status: string }) {
   const s = (status ?? '').toUpperCase()
@@ -14,26 +14,11 @@ function StatusIcon({ status }: { status: string }) {
 }
 
 export default function RegistryHealth() {
-  const [data, setData] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const { data, state, error, refresh } = useDashboard<RegistryHealthType>('registry/health')
 
-  const load = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      setData(await fetchDashboard('registry/health'))
-    } catch (e: any) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { load() }, [])
-
-  if (loading) return <DashboardSkeleton statCount={3} />
-  if (error) return <div className="text-red-400 p-6">Error: {error}</div>
+  if (state === 'loading') return <DashboardSkeleton statCount={3} />
+  if (state === 'error') return <div className="text-red-400 p-6">Error: {error}</div>
+  if (!data) return null
 
   const healthy = data.registries.filter((r: any) => ['SUCCESS', 'ACTIVE', 'COMPLETED'].includes((r.state ?? '').toUpperCase())).length
 
@@ -63,7 +48,7 @@ export default function RegistryHealth() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Registry Health</h2>
-        <button onClick={load} className="flex items-center gap-2 text-sm text-slate-400 hover:text-blue-400 transition-colors">
+        <button onClick={refresh} className="flex items-center gap-2 text-sm text-slate-400 hover:text-blue-400 transition-colors">
           <RefreshCw size={14} /> Refresh
         </button>
       </div>

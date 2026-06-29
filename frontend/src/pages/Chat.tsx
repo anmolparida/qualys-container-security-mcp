@@ -1,15 +1,10 @@
-import { useState, useRef, useEffect, Component } from 'react'
+import { useRef, useEffect, Component } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { streamChat } from '../lib/api'
+import { useChatStore, type Message } from '../store/chatStore'
 import { Send, Bot, User } from 'lucide-react'
 import ChartRenderer from '../components/ChartRenderer'
-
-interface Message {
-  role: 'user' | 'assistant'
-  content: string
-  fact?: string
-}
 
 // Error boundary that falls back to plain text if react-markdown crashes.
 // This prevents the whole chat page from going blank/black on malformed output.
@@ -120,10 +115,14 @@ const QUALYS_FACTS = [
 ]
 
 export default function Chat() {
-  const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState('')
-  const [streaming, setStreaming] = useState(false)
-  const [currentFact, setCurrentFact] = useState('')
+  const messages = useChatStore(state => state.messages)
+  const input = useChatStore(state => state.input)
+  const streaming = useChatStore(state => state.streaming)
+  const setInput = useChatStore(state => state.setInput)
+  const addMessage = useChatStore(state => state.addMessage)
+  const appendAssistant = useChatStore(state => state.appendAssistant)
+  const setStreaming = useChatStore(state => state.setStreaming)
+
   const bottomRef = useRef<HTMLDivElement>(null)
   const streamBuffer = useRef('')
   const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -143,14 +142,7 @@ export default function Chat() {
     if (!streamBuffer.current) return
     const chunk = streamBuffer.current
     streamBuffer.current = ''
-    setMessages(prev => {
-      const updated = [...prev]
-      updated[updated.length - 1] = {
-        ...updated[updated.length - 1],
-        content: updated[updated.length - 1].content + chunk,
-      }
-      return updated
-    })
+    appendAssistant(chunk)
   }
 
   const pickFact = () => {
@@ -166,14 +158,10 @@ export default function Chat() {
   const send = async (text: string) => {
     if (!text.trim() || streaming) return
     const fact = pickFact()
-    const userMsg: Message = { role: 'user', content: text, fact }
-    setMessages(prev => [...prev, userMsg])
+    addMessage({ role: 'user', content: text, fact })
     setInput('')
-    setCurrentFact(fact)
+    addMessage({ role: 'assistant', content: '' })
     setStreaming(true)
-
-    const assistantMsg: Message = { role: 'assistant', content: '' }
-    setMessages(prev => [...prev, assistantMsg])
 
     try {
       const history = messages.map(m => ({ role: m.role, content: m.content }))
@@ -183,11 +171,7 @@ export default function Chat() {
         streamBuffer.current += chunk
       }
     } catch (e: any) {
-      setMessages(prev => {
-        const updated = [...prev]
-        updated[updated.length - 1] = { role: 'assistant', content: `Error: ${e.message}` }
-        return updated
-      })
+      appendAssistant(`Error: ${e.message}`)
     } finally {
       if (flushTimer.current) {
         clearInterval(flushTimer.current)
