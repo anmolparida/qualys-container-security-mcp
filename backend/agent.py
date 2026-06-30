@@ -17,7 +17,7 @@ from shared.tool_registry import build_anthropic_tools, build_route
 
 logger = logging.getLogger("agent")
 
-BEDROCK_MODEL = os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-3-5-sonnet-20241022-v2:0")
+BEDROCK_MODEL = os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-3-5-haiku-20241022-v1:0")
 
 SYSTEM_PROMPT = """You are a Qualys Container Security assistant. You help security teams understand
 their container environment by answering questions about containers, images, vulnerabilities,
