@@ -106,7 +106,7 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
   <div class="logo-icon">⚡</div>
   <div><div class="logo-text">Qualys KCS</div><div class="logo-sub">AI Intelligence Platform</div></div>
 </div>
-<div class="slide-num" id="slideNum">1 / 8</div>
+<div class="slide-num" id="slideNum">1 / 6</div>
 
 <div class="deck">
 
@@ -255,26 +255,9 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
 </div>
 
 
-<!-- ═══ SLIDE 6: CEO/CTO Q&A ═══ -->
-<div class="slide" id="slide-6">
-  <div class="wide">
-    <div class="tag">Anticipated Questions</div>
-    <h2>CEO / CTO Q&amp;A</h2>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;overflow:auto;max-height:390px">
-      <div class="qa"><div class="qa-q">Is our security data going to OpenAI / Anthropic?</div><div class="qa-a">No. Claude runs on <strong>your Amazon Bedrock account</strong>. Data stays in your AWS VPC. Zero sharing with Anthropic.</div></div>
-      <div class="qa"><div class="qa-q">How is this different from the Qualys UI?</div><div class="qa-a">Qualys UI is form-based — fill filters, export, build reports. Sheldon is conversational — one sentence gets a table, chart, or YAML in seconds.</div></div>
-      <div class="qa"><div class="qa-q">Can it hallucinate vulnerability data?</div><div class="qa-a">No. System prompt enforces: <em>"Never make up data — only report what the API returns."</em> If the API returns nothing, it says so clearly.</div></div>
-      <div class="qa"><div class="qa-q">What's the cost per query?</div><div class="qa-a">Claude 3 Haiku on Bedrock: ~$0.002–0.005 per conversation turn (2 API calls). Extremely low cost for the value delivered.</div></div>
-      <div class="qa"><div class="qa-q">Is this production-ready?</div><div class="qa-a">Developer prototype today. Needs auth middleware, rate limiting, and horizontal scaling before production deployment.</div></div>
-      <div class="qa"><div class="qa-q">How do we add new Qualys API endpoints?</div><div class="qa-a">One file: <code>shared/tool_registry.py</code>. Add a tool definition — auto-appears in both agent and MCP server. No other changes needed.</div></div>
-      <div class="qa"><div class="qa-q">What's the data retention / logging?</div><div class="qa-a">No conversation persistence. History is browser-session only. Backend logs tool names and token counts — no user message content is logged.</div></div>
-      <div class="qa"><div class="qa-q">Can we white-label this for customers?</div><div class="qa-a">Yes — standard React + FastAPI stack. Branding (name, colours, logo) is entirely in <code>App.tsx</code> and <code>index.css</code>.</div></div>
-    </div>
-  </div>
-</div>
 
-<!-- ═══ SLIDE 7: ROADMAP ═══ -->
-<div class="slide" id="slide-7">
+<!-- ═══ SLIDE 6: ROADMAP ═══ -->
+<div class="slide" id="slide-6">
   <div class="wide">
     <div class="tag">Roadmap</div>
     <h2>What's next.</h2>
@@ -297,45 +280,6 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
   </div>
 </div>
 
-<!-- ═══ SLIDE 8: DEMO ═══ -->
-<div class="slide" id="slide-8">
-  <div class="wide">
-    <div class="tag">Live Demo</div>
-    <h2>Suggested demo flow.</h2>
-    <div class="three-col">
-      <div class="fcard">
-        <div class="fi">1️⃣</div>
-        <h3>Empty State</h3>
-        <p>Open Sheldon — show the suggestion cards, dark theme, and clean ChatGPT-style UI.</p>
-      </div>
-      <div class="fcard">
-        <div class="fi">2️⃣</div>
-        <h3>Critical CVEs</h3>
-        <p>Click <em>"Show all critical vulnerabilities across containers"</em> — live table appears with real data.</p>
-      </div>
-      <div class="fcard">
-        <div class="fi">3️⃣</div>
-        <h3>Chart</h3>
-        <p>Ask <em>"Chart image vulnerabilities by severity"</em> — inline pie chart renders from agent output.</p>
-      </div>
-      <div class="fcard">
-        <div class="fi">4️⃣</div>
-        <h3>Secrets Detection</h3>
-        <p>Ask <em>"Which images have detected secrets?"</em> — uses <code>container.image.hasSecrets:true</code> filter live.</p>
-      </div>
-      <div class="fcard">
-        <div class="fi">5️⃣</div>
-        <h3>CI/CD — QScanner</h3>
-        <p>Ask <em>"How do I add QScanner to my GitHub Actions pipeline?"</em> — Sheldon generates YAML with docs link.</p>
-      </div>
-      <div class="fcard">
-        <div class="fi">6️⃣</div>
-        <h3>Dashboards</h3>
-        <p>Switch to K8s Posture and Registry Health tabs — live dashboard data without any chat query.</p>
-      </div>
-    </div>
-  </div>
-</div>
 
 </div><!-- /deck -->
 
@@ -343,12 +287,12 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
 <div class="nav">
   <button onclick="go(-1)">←</button>
   <div class="dots" id="dots"></div>
-  <div class="counter" id="counter">1 / 8</div>
+  <div class="counter" id="counter">1 / 6</div>
   <button onclick="go(1)">→</button>
 </div>
 
 <script>
-const total = 8;
+const total = 6;
 let cur = 1;
 
 const dots = document.getElementById('dots');
