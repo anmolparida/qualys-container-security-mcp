@@ -234,13 +234,39 @@ def _truncate_messages(messages: list) -> list:
     - Ensure the first message always has role 'user' (Anthropic requirement).
     """
     trimmed = [{**msg, "content": _truncate_content(msg.get("content"))} for msg in messages]
-    # Drop messages with empty content (except an optional final assistant message)
+    # Drop messages with empty content
     trimmed = [m for m in trimmed if m.get("content")]
     trimmed = trimmed[-MAX_HISTORY_MESSAGES:]
     # Drop leading non-user messages
     while trimmed and trimmed[0].get("role") != "user":
         trimmed = trimmed[1:]
-    return trimmed
+    # Remove orphaned tool_result pairs: a user message whose content is a list
+    # of tool_result blocks must be preceded by an assistant message with tool_use blocks.
+    # If truncation removed the assistant tool_use, drop the orphaned tool_result too.
+    cleaned = []
+    for i, msg in enumerate(trimmed):
+        content = msg.get("content")
+        if (
+            msg.get("role") == "user"
+            and isinstance(content, list)
+            and any(
+                (isinstance(b, dict) and b.get("type") == "tool_result")
+                or (hasattr(b, "type") and getattr(b, "type") == "tool_result")
+                for b in content
+            )
+        ):
+            # Check the previous message has tool_use blocks
+            prev = cleaned[-1] if cleaned else None
+            prev_content = prev.get("content") if prev else None
+            has_tool_use = prev_content and any(
+                (isinstance(b, dict) and b.get("type") == "tool_use")
+                or (hasattr(b, "type") and getattr(b, "type") == "tool_use")
+                for b in (prev_content if isinstance(prev_content, list) else [])
+            )
+            if not has_tool_use:
+                continue  # skip orphaned tool_result
+        cleaned.append(msg)
+    return cleaned
 
 
 async def run_agent(user_message: str, history: list) -> AsyncGenerator[str, None]:

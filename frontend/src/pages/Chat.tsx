@@ -235,8 +235,8 @@ export default function Chat() {
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center gap-8">
             <div className="text-center space-y-3">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center mx-auto shadow-lg shadow-orange-900/30">
-                <Zap size={32} className="text-white" fill="white" />
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center mx-auto shadow-lg shadow-orange-900/30">
+                <Zap size={28} className="text-white" fill="white" />
               </div>
               <div>
                 <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Agent Sheldon</p>
@@ -262,20 +262,20 @@ export default function Chat() {
             {messages.map((m, i) => (
               <div key={i} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {m.role === 'assistant' && (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center flex-shrink-0 mt-1">
-                    <Zap size={16} className="text-white" fill="white" />
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center flex-shrink-0 mt-1 shadow-sm shadow-orange-900/20">
+                    <Zap size={15} className="text-white" fill="white" />
                   </div>
                 )}
                 <div className={`max-w-[95%] md:max-w-[95%] ${m.role === 'user' ? 'order-1' : 'order-2'}`}>
                   {m.role === 'user' && m.fact && (
                     <div className="mb-2 text-right">
-                      <div className="inline-flex items-start gap-2 rounded-lg border-l-4 border-orange-600/60 p-2.5 text-xs text-left max-w-full animate-lightning-strike" style={{ background: 'var(--bg-secondary-alpha)', color: 'var(--text-muted)' }}>
-                        <span className="relative flex-shrink-0 flex items-center justify-center w-5 h-5 mt-0.5" style={{ overflow: 'hidden', borderRadius: '9999px' }}>
-                          <span className="absolute inline-flex w-5 h-5 rounded-full bg-orange-400" style={{ animation: 'zap-ripple 3s ease-out infinite' }} />
-                          <span className="absolute inline-flex w-5 h-5 rounded-full bg-orange-400" style={{ animation: 'zap-ripple 3s ease-out 1s infinite' }} />
-                          <span className="absolute inline-flex w-5 h-5 rounded-full bg-orange-400" style={{ animation: 'zap-ripple 3s ease-out 2s infinite' }} />
-                          <span className="relative flex items-center justify-center w-5 h-5 rounded-full bg-orange-500">
-                            <Zap size={11} fill="white" className="text-white" />
+                      <div className="inline-flex items-center gap-2 rounded-lg border-l-4 border-orange-600/60 p-2.5 text-xs text-left max-w-full animate-lightning-strike" style={{ background: 'var(--bg-secondary-alpha)', color: 'var(--text-muted)' }}>
+                        <span className="relative flex-shrink-0 flex items-center justify-center w-4 h-4" style={{ overflow: 'visible' }}>
+                          <span className="absolute inline-flex w-4 h-4 rounded-full bg-orange-400" style={{ animation: 'zap-ripple 3s ease-out infinite' }} />
+                          <span className="absolute inline-flex w-4 h-4 rounded-full bg-orange-400" style={{ animation: 'zap-ripple 3s ease-out 1s infinite' }} />
+                          <span className="absolute inline-flex w-4 h-4 rounded-full bg-orange-400" style={{ animation: 'zap-ripple 3s ease-out 2s infinite' }} />
+                          <span className="relative flex items-center justify-center w-4 h-4 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 shadow-sm shadow-orange-900/20">
+                            <Zap size={9} fill="white" className="text-white" />
                           </span>
                         </span>
                         <span>

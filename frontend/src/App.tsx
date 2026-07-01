@@ -28,8 +28,8 @@ export default function App() {
       <aside className="w-60 flex flex-col flex-shrink-0" style={{ background: 'var(--sidebar-bg)', borderRight: '1px solid var(--border)' }}>
         <div className="p-5">
           <button onClick={() => setTab('chat')} className="flex items-center gap-3 w-full text-left hover:opacity-80 transition-opacity">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg">
-              <Zap size={20} className="text-white" fill="white" />
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-900/30">
+              <Zap size={18} className="text-white" fill="white" />
             </div>
             <div>
               <p className="text-sm font-bold text-white tracking-tight">Qualys KCS</p>
@@ -93,8 +93,8 @@ export default function App() {
         <header className="h-16 flex items-center justify-between px-6 border-b flex-shrink-0" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
           <div className="flex items-center gap-3">
             {tab === 'chat' && (
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-md shadow-orange-900/20 flex-shrink-0">
-                <Zap size={16} className="text-white" fill="white" />
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-md shadow-orange-900/20 flex-shrink-0">
+                <Zap size={15} className="text-white" fill="white" />
               </div>
             )}
             <div>
