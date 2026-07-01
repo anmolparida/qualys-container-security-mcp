@@ -29,7 +29,7 @@ export default function ContainerOverview() {
   const { data, state, error, refresh } = useDashboard<ContainerOverviewType>('containers/overview')
   const { dark } = useTheme()
 
-  if (state === 'loading' || state === 'idle') return <DashboardSkeleton statCount={4} />
+  if (!data && state === 'loading') return <DashboardSkeleton statCount={4} />
   if (state === 'error') return <div className="text-red-400 p-6">Error: {error}</div>
   if (!data) return <DashboardSkeleton statCount={4} />
 

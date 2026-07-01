@@ -16,7 +16,7 @@ function StatusIcon({ status }: { status: string }) {
 export default function RegistryHealth() {
   const { data, state, error, refresh } = useDashboard<RegistryHealthType>('registry/health')
 
-  if (state === 'loading' || state === 'idle') return <DashboardSkeleton statCount={3} />
+  if (!data && state === 'loading') return <DashboardSkeleton statCount={3} />
   if (state === 'error') return <div className="text-red-400 p-6">Error: {error}</div>
   if (!data) return <DashboardSkeleton statCount={3} />
 

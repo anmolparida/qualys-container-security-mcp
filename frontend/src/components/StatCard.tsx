@@ -9,14 +9,14 @@ interface StatCardProps {
   accent?: string
 }
 
-export default function StatCard({ label, value, sub, color = 'text-white', icon: Icon, accent = 'from-blue-500 to-blue-600' }: StatCardProps) {
+export default function StatCard({ label, value, sub, color, icon: Icon, accent = 'from-blue-500 to-blue-600' }: StatCardProps) {
   return (
     <div className="relative overflow-hidden rounded-xl p-5 border" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
       <div className={`absolute top-0 left-0 w-1 h-full bg-gradient-to-b ${accent}`} />
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>{label}</p>
-          <p className={`text-3xl font-bold ${color}`}>{value ?? '—'}</p>
+          <p className={`text-3xl font-bold ${color ?? ''}`} style={!color ? { color: 'var(--text-primary)' } : {}}>{value ?? '—'}</p>
           {sub && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{sub}</p>}
         </div>
         {Icon && (

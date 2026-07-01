@@ -4,26 +4,26 @@ import { useDashboardStore } from '../store/dashboardStore'
 import type { DashboardEndpoint } from '../types/api'
 
 export function useDashboard<T = any>(key: DashboardEndpoint) {
-  const store = useDashboardStore()
-  const data = store.getData(key) as T
-  const state = store.getState(key)
-  const error = store.getError(key)
+  const setLoading = useDashboardStore(s => s.setLoading)
+  const setData = useDashboardStore(s => s.setData)
+  const setError = useDashboardStore(s => s.setError)
+  const data = useDashboardStore(s => s.cache[key]) as T | undefined
+  const state = useDashboardStore(s => s.states[key] ?? 'idle')
+  const error = useDashboardStore(s => s.errors[key] ?? '')
 
   const load = async () => {
-    store.setLoading(key)
+    setLoading(key)
     try {
       const result = await fetchDashboard<T>(key)
-      store.setData(key, result)
+      setData(key, result)
     } catch (e: any) {
-      store.setError(key, e.message)
+      setError(key, e.message)
     }
   }
 
   useEffect(() => {
-    if (state === 'idle') {
-      load()
-    }
-  }, [key, state])
+    load()
+  }, [key])
 
   return { data, state, error, refresh: load }
 }
