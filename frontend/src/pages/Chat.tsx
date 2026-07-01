@@ -279,8 +279,8 @@ export default function Chat() {
                           </span>
                         </span>
                         <span>
-                          <span className="font-semibold not-italic text-orange-600">Did you know?</span>{' '}
-                          <span className="italic">{m.fact}</span>
+                          <span className="text-orange-600">Did you know?</span>{' '}
+                          <span>{m.fact}</span>
                         </span>
                       </div>
                     </div>
