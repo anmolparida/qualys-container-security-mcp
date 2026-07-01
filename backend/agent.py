@@ -127,9 +127,14 @@ def _truncate_messages(messages: list) -> list:
     - Always preserve the most recent user message.
     - Keep the last MAX_HISTORY_MESSAGES turns.
     - Truncate oversized assistant/user text and tool result JSON.
+    - Ensure the first message always has role 'user' (Anthropic requirement).
     """
     trimmed = [{**msg, "content": _truncate_content(msg.get("content"))} for msg in messages]
-    return trimmed[-MAX_HISTORY_MESSAGES:]
+    trimmed = trimmed[-MAX_HISTORY_MESSAGES:]
+    # Drop leading non-user messages
+    while trimmed and trimmed[0].get("role") != "user":
+        trimmed = trimmed[1:]
+    return trimmed
 
 
 async def run_agent(user_message: str, history: list) -> AsyncGenerator[str, None]:
