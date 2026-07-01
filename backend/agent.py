@@ -37,6 +37,7 @@ FORMATTING RULES:
 - For image tables include columns: Image, Tag, Critical, High, Medium vulns
 - Keep table rows concise — truncate long strings with ...
 - After a table, add a 1–2 line summary of the key finding
+- Always wrap shell commands, CLI output, kubectl/helm commands, and code snippets in fenced code blocks with the appropriate language tag (e.g. ```bash, ```yaml, ```json). Never print commands as plain text lines.
 - When the user asks for charts, graphs, or visualizations, output a chart data block inside a fenced code block marked ```chart. The block must contain valid JSON with: type ("pie", "bar", or "line"), title (string), data (array of objects with "name" and "value"), and optional colors (array of hex strings). Example:
   ```chart
   {"type": "pie", "title": "Vulnerability Severity", "data": [{"name": "Critical", "value": 5}, {"name": "High", "value": 12}]}
@@ -130,6 +131,8 @@ def _truncate_messages(messages: list) -> list:
     - Ensure the first message always has role 'user' (Anthropic requirement).
     """
     trimmed = [{**msg, "content": _truncate_content(msg.get("content"))} for msg in messages]
+    # Drop messages with empty content (except an optional final assistant message)
+    trimmed = [m for m in trimmed if m.get("content")]
     trimmed = trimmed[-MAX_HISTORY_MESSAGES:]
     # Drop leading non-user messages
     while trimmed and trimmed[0].get("role") != "user":

@@ -165,7 +165,7 @@ export default function Chat() {
     setStreaming(true)
 
     try {
-      const history = messages.map(m => ({ role: m.role, content: m.content }))
+      const history = messages.filter(m => m.content.trim()).map(m => ({ role: m.role, content: m.content }))
       // Batch chunks to avoid re-rendering markdown on every token
       flushTimer.current = setInterval(flushStreamBuffer, 80)
       for await (const chunk of streamChat(text, history)) {
