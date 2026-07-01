@@ -269,10 +269,11 @@ export default function Chat() {
                   {m.role === 'user' && m.fact && (
                     <div className="mb-2 text-right">
                       <div className="inline-flex items-start gap-2 rounded-lg border-l-4 border-orange-600/60 p-2.5 text-xs text-left max-w-full animate-lightning-strike" style={{ background: 'var(--bg-secondary-alpha)', color: 'var(--text-muted)' }}>
-                        <span className="relative flex-shrink-0 flex items-center justify-center w-5 h-5 mt-0.5">
-                          <span className="absolute inline-flex w-full h-full rounded-full bg-orange-400 opacity-40 animate-zap-ripple" />
-                          <span className="absolute inline-flex w-full h-full rounded-full bg-orange-400 opacity-25 animate-zap-ripple-delay" />
-                          <span className="relative flex items-center justify-center w-5 h-5 rounded-full bg-orange-500 animate-zap-flash">
+                        <span className="relative flex-shrink-0 flex items-center justify-center w-5 h-5 mt-0.5" style={{ overflow: 'hidden', borderRadius: '9999px' }}>
+                          <span className="absolute inline-flex w-5 h-5 rounded-full bg-orange-400" style={{ animation: 'zap-ripple 3s ease-out infinite' }} />
+                          <span className="absolute inline-flex w-5 h-5 rounded-full bg-orange-400" style={{ animation: 'zap-ripple 3s ease-out 1s infinite' }} />
+                          <span className="absolute inline-flex w-5 h-5 rounded-full bg-orange-400" style={{ animation: 'zap-ripple 3s ease-out 2s infinite' }} />
+                          <span className="relative flex items-center justify-center w-5 h-5 rounded-full bg-orange-500">
                             <Zap size={11} fill="white" className="text-white" />
                           </span>
                         </span>

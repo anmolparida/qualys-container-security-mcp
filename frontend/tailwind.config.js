@@ -28,8 +28,8 @@ export default {
           '100%': { boxShadow: 'none', borderColor: 'rgba(234,88,12,0.4)' },
         },
         'zap-ripple': {
-          '0%':   { transform: 'scale(0.6)', opacity: '0.8' },
-          '100%': { transform: 'scale(2.4)', opacity: '0' },
+          '0%':   { transform: 'scale(1)', opacity: '0.7' },
+          '100%': { transform: 'scale(3.5)', opacity: '0' },
         },
       },
       animation: {
