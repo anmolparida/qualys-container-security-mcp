@@ -106,7 +106,7 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
   <div class="logo-icon">⚡</div>
   <div><div class="logo-text">Qualys KCS</div><div class="logo-sub">AI Intelligence Platform</div></div>
 </div>
-<div class="slide-num" id="slideNum">1 / 9</div>
+<div class="slide-num" id="slideNum">1 / 8</div>
 
 <div class="deck">
 
@@ -254,52 +254,9 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
   </div>
 </div>
 
-<!-- ═══ SLIDE 6: CI/CD ═══ -->
-<div class="slide" id="slide-6">
-  <div class="wide">
-    <div class="tag">CI/CD Integration</div>
-    <h2>Shift-left with <span class="grad-text">QScanner</span>.</h2>
-    <div class="two-col">
-      <div>
-        <p style="margin-bottom:16px">For all CI/CD, build-time, and pipeline scanning questions Sheldon always recommends and references <strong style="color:var(--text)">QScanner</strong> — the official Qualys CLI tool for shift-left container security.</p>
-        <div class="card" style="border-color:rgba(249,115,22,.3);margin-bottom:14px">
-          <div style="font-size:11px;color:var(--orange);font-weight:700;margin-bottom:8px">QSCANNER DOCS</div>
-          <code style="font-size:11px;display:block;word-break:break-all">docs.qualys.com/en/qscanner/latest/</code>
-        </div>
-        <ul>
-          <li>Scans images at build time before they reach production</li>
-          <li>Integrates with Jenkins, GitHub Actions, GitLab CI, Azure DevOps</li>
-          <li>Returns vulnerability, malware, and secrets findings in CI output</li>
-          <li>Fail the build if critical CVEs are detected</li>
-          <li>Policy-based gates — block deploys based on severity thresholds</li>
-        </ul>
-      </div>
-      <div>
-        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Example QScanner CI step</div>
-        <div class="card" style="background:#0d1117;border-color:#30363d;font-family:Menlo,monospace;font-size:12px;color:#e6edf3;line-height:1.7">
-          <span style="color:#8b949e"># GitHub Actions example</span><br/>
-          <span style="color:#ff7b72">- name:</span> <span style="color:#a5d6ff">Scan image with QScanner</span><br/>
-          &nbsp;&nbsp;<span style="color:#ff7b72">run:</span> <span style="color:#7dd3fc">|</span><br/>
-          &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#e6edf3">qscanner image scan \</span><br/>
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#e6edf3">--image myapp:$&#123;&#123; github.sha &#125;&#125; \</span><br/>
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#e6edf3">--fail-on CRITICAL \</span><br/>
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#e6edf3">--report-format json</span>
-        </div>
-        <div class="card" style="margin-top:12px">
-          <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Ask Sheldon</div>
-          <div style="display:flex;flex-direction:column;gap:7px">
-            <div style="font-size:12px;color:var(--text)">"How do I integrate QScanner into Jenkins?"</div>
-            <div style="font-size:12px;color:var(--text)">"Show me QScanner commands for image scanning"</div>
-            <div style="font-size:12px;color:var(--text)">"How do I fail a build on critical CVEs?"</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
-<!-- ═══ SLIDE 7: CEO/CTO Q&A ═══ -->
-<div class="slide" id="slide-7">
+<!-- ═══ SLIDE 6: CEO/CTO Q&A ═══ -->
+<div class="slide" id="slide-6">
   <div class="wide">
     <div class="tag">Anticipated Questions</div>
     <h2>CEO / CTO Q&amp;A</h2>
@@ -316,8 +273,8 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
   </div>
 </div>
 
-<!-- ═══ SLIDE 8: ROADMAP ═══ -->
-<div class="slide" id="slide-8">
+<!-- ═══ SLIDE 7: ROADMAP ═══ -->
+<div class="slide" id="slide-7">
   <div class="wide">
     <div class="tag">Roadmap</div>
     <h2>What's next.</h2>
@@ -340,8 +297,8 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
   </div>
 </div>
 
-<!-- ═══ SLIDE 9: DEMO ═══ -->
-<div class="slide" id="slide-9">
+<!-- ═══ SLIDE 8: DEMO ═══ -->
+<div class="slide" id="slide-8">
   <div class="wide">
     <div class="tag">Live Demo</div>
     <h2>Suggested demo flow.</h2>
@@ -386,12 +343,12 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
 <div class="nav">
   <button onclick="go(-1)">←</button>
   <div class="dots" id="dots"></div>
-  <div class="counter" id="counter">1 / 9</div>
+  <div class="counter" id="counter">1 / 8</div>
   <button onclick="go(1)">→</button>
 </div>
 
 <script>
-const total = 9;
+const total = 8;
 let cur = 1;
 
 const dots = document.getElementById('dots');
