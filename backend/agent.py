@@ -238,10 +238,12 @@ def _truncate_content(content: Any) -> Any:
     for item in content:
         # Tool result list from user messages
         if isinstance(item, dict) and item.get("type") == "tool_result":
-            item = {
-                **item,
-                "content": _truncate_text(item.get("content", ""), MAX_TOOL_RESULT_CHARS),
-            }
+            raw = item.get("content", "")
+            if isinstance(raw, str):
+                raw = _truncate_text(raw, MAX_TOOL_RESULT_CHARS)
+            elif isinstance(raw, list):
+                raw = str(raw)[:MAX_TOOL_RESULT_CHARS]
+            item = {**item, "content": raw}
         # Anthropic content block (TextBlock, ToolUseBlock)
         elif hasattr(item, "type") and getattr(item, "type") == "text" and hasattr(item, "text"):
             text = getattr(item, "text", "")
@@ -266,49 +268,52 @@ def _truncate_messages(messages: list) -> list:
     """Keep the conversation within the model's context window.
 
     Guarantees:
-    - First message is always role='user'.
-    - No orphaned tool_result messages (user msg with tool_results but no preceding assistant tool_use).
-    - No consecutive messages with the same role.
-    - Never returns an empty list (falls back to just the last user message).
+    - First message is always role='user' (never a tool_result).
+    - tool_use/tool_result pairs are never split by the history window.
+    - Never returns an empty list.
     """
-    trimmed = [{**msg, "content": _truncate_content(msg.get("content"))} for msg in messages]
+    # Step 1: truncate content length in each message
+    msgs = [{**msg, "content": _truncate_content(msg.get("content"))} for msg in messages]
     # Drop messages with empty/None content
-    trimmed = [m for m in trimmed if m.get("content")]
-    trimmed = trimmed[-MAX_HISTORY_MESSAGES:]
-    # Drop leading non-user messages
-    while trimmed and trimmed[0].get("role") != "user":
-        trimmed = trimmed[1:]
+    msgs = [m for m in msgs if m.get("content")]
 
-    # Remove orphaned tool_result user messages (no preceding assistant tool_use)
+    # Step 2: trim to MAX_HISTORY_MESSAGES but always keep pairs together.
+    # Walk from the tail and collect up to MAX_HISTORY_MESSAGES messages,
+    # but if we'd cut between a tool_use and its tool_result, drop both.
+    if len(msgs) > MAX_HISTORY_MESSAGES:
+        tail = msgs[-MAX_HISTORY_MESSAGES:]
+        # If the first message in tail is a tool_result, drop it (its tool_use was cut off)
+        while tail and (
+            tail[0].get("role") != "user"
+            or _has_block_type(tail[0].get("content"), "tool_result")
+        ):
+            tail = tail[1:]
+        msgs = tail
+
+    # Step 3: ensure first message is a plain user message (not tool_result)
+    while msgs and (
+        msgs[0].get("role") != "user"
+        or _has_block_type(msgs[0].get("content"), "tool_result")
+    ):
+        msgs = msgs[1:]
+
+    # Step 4: scan and drop any remaining orphaned tool_result messages
     cleaned = []
-    for msg in trimmed:
-        content = msg.get("content")
-        if msg.get("role") == "user" and _has_block_type(content, "tool_result"):
+    for msg in msgs:
+        if msg.get("role") == "user" and _has_block_type(msg.get("content"), "tool_result"):
             prev = cleaned[-1] if cleaned else None
             if not (prev and _has_block_type(prev.get("content"), "tool_use")):
-                continue  # skip orphaned tool_result
+                continue  # orphaned — drop it
         cleaned.append(msg)
 
-    # Drop consecutive same-role messages (keep the last one of each run)
-    deduped = []
-    for msg in cleaned:
-        if deduped and deduped[-1].get("role") == msg.get("role"):
-            deduped[-1] = msg  # replace with later message
-        else:
-            deduped.append(msg)
-
-    # Final safety: ensure first message is user
-    while deduped and deduped[0].get("role") != "user":
-        deduped = deduped[1:]
-
-    # If somehow empty, return just the last user message from the original list
-    if not deduped:
-        for msg in reversed(trimmed):
-            if msg.get("role") == "user":
+    # Step 5: fallback — if empty, return just the last plain user message
+    if not cleaned:
+        for msg in reversed(msgs or messages):
+            if msg.get("role") == "user" and not _has_block_type(msg.get("content"), "tool_result"):
                 return [msg]
         return []
 
-    return deduped
+    return cleaned
 
 
 async def run_agent(user_message: str, history: list) -> AsyncGenerator[str, None]:
@@ -353,7 +358,18 @@ async def run_agent(user_message: str, history: list) -> AsyncGenerator[str, Non
 
             tool_results = await asyncio.gather(*[_run_tool(block) for block in tool_blocks])
 
-            messages.append({"role": "assistant", "content": response.content})
-            messages.append({"role": "user", "content": tool_results})
+            def _serialize_block(b):
+                if isinstance(b, dict):
+                    return b
+                t = getattr(b, "type", "")
+                if t == "tool_use":
+                    return {"type": "tool_use", "id": b.id, "name": b.name, "input": b.input}
+                if t == "text":
+                    return {"type": "text", "text": getattr(b, "text", "")}
+                return {"type": t}
+
+            assistant_content = [_serialize_block(b) for b in response.content]
+            messages.append({"role": "assistant", "content": assistant_content})
+            messages.append({"role": "user", "content": list(tool_results)})
         else:
             break
