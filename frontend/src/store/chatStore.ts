@@ -4,6 +4,7 @@ export interface Message {
   role: 'user' | 'assistant'
   content: string
   fact?: string
+  isError?: boolean
 }
 
 interface ChatState {
@@ -13,6 +14,7 @@ interface ChatState {
   setInput: (input: string) => void
   addMessage: (message: Message) => void
   appendAssistant: (chunk: string) => void
+  setLastMessageError: (errorText: string) => void
   setStreaming: (streaming: boolean) => void
   reset: () => void
 }
@@ -30,6 +32,15 @@ export const useChatStore = create<ChatState>((set) => ({
       last.content += chunk
     } else {
       messages.push({ role: 'assistant', content: chunk })
+    }
+    return { messages }
+  }),
+  setLastMessageError: (errorText) => set((state) => {
+    const messages = [...state.messages]
+    const last = messages[messages.length - 1]
+    if (last && last.role === 'assistant') {
+      last.content = errorText
+      last.isError = true
     }
     return { messages }
   }),

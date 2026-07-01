@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { streamChat } from '../lib/api'
 import { useChatStore, type Message } from '../store/chatStore'
-import { Send, Bot, User } from 'lucide-react'
+import { Send, Bot, User, AlertTriangle } from 'lucide-react'
 import ChartRenderer from '../components/ChartRenderer'
 
 // Error boundary that falls back to plain text if react-markdown crashes.
@@ -121,6 +121,7 @@ export default function Chat() {
   const setInput = useChatStore(state => state.setInput)
   const addMessage = useChatStore(state => state.addMessage)
   const appendAssistant = useChatStore(state => state.appendAssistant)
+  const setLastMessageError = useChatStore(state => state.setLastMessageError)
   const setStreaming = useChatStore(state => state.setStreaming)
 
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -170,8 +171,14 @@ export default function Chat() {
       for await (const chunk of streamChat(text, history)) {
         streamBuffer.current += chunk
       }
+      // Check if the buffered content contains an error sentinel from the backend
+      if (streamBuffer.current.includes('__ERROR__:')) {
+        const errText = streamBuffer.current.split('__ERROR__:')[1]?.trim() ?? 'Unknown error'
+        streamBuffer.current = ''
+        setLastMessageError(errText)
+      }
     } catch (e: any) {
-      appendAssistant(`Error: ${e.message}`)
+      setLastMessageError(e.message)
     } finally {
       if (flushTimer.current) {
         clearInterval(flushTimer.current)
@@ -237,6 +244,17 @@ export default function Chat() {
                       </div>
                     </div>
                   )}
+                  {m.isError ? (
+                    <div className="rounded-2xl border border-red-500/40 bg-red-950/30 px-4 py-3 text-sm rounded-bl-md">
+                      <div className="flex items-start gap-2 text-red-400">
+                        <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-semibold mb-1">Something went wrong</p>
+                          <p className="text-red-300/80 text-xs font-mono break-all">{m.content}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
                   <div
                     className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                       m.role === 'user'
@@ -265,6 +283,7 @@ export default function Chat() {
                       </div>
                     )}
                   </div>
+                  )}
                 </div>
                 {m.role === 'user' && (
                   <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0 mt-1 order-2">

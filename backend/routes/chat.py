@@ -14,7 +14,10 @@ class ChatRequest(BaseModel):
 @router.post("/")
 async def chat(req: ChatRequest):
     async def generate():
-        async for chunk in run_agent(req.message, req.history):
-            yield chunk
+        try:
+            async for chunk in run_agent(req.message, req.history):
+                yield chunk
+        except Exception as e:
+            yield f"\n__ERROR__:{str(e)}"
 
     return StreamingResponse(generate(), media_type="text/plain")
