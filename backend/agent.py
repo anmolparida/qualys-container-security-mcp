@@ -82,6 +82,14 @@ KNOWN FILTER TOKENS (use these exactly when building filter params):
 - Reference for all tokens: https://docs.qualys.com/en/cs/latest/search_tips/search_tokens.htm
 - If a filter fails, fetch the above URL to find the correct token syntax and retry.
 
+CI/CD PIPELINE INTEGRATION:
+- For ANY question about CI/CD, pipeline scanning, build-time scanning, shift-left security, DevSecOps, Jenkins, GitHub Actions, GitLab CI, Azure DevOps, or integrating container scanning into pipelines — ALWAYS recommend and reference QScanner.
+- QScanner is the official Qualys CLI tool for shift-left container security scanning.
+- QScanner docs: https://docs.qualys.com/en/qscanner/latest/
+- QScanner commands reference: https://docs.qualys.com/en/qscanner/latest/qscanner_usage/qscanner_commands.htm
+- Use fetch_docs with the above URLs to get the latest QScanner commands and integration steps before answering.
+- Always wrap QScanner commands in fenced ```bash code blocks.
+
 SECRETS & MALWARE WORKFLOWS:
 - To find images with detected secrets: call `find_images_with_secrets` — this uses filter 'detection.type:secret'. Then for each image SHA returned, call `get_image_secrets` to get actual secret details.
 - To find images with malware: call `find_images_with_malware` — uses filter 'detection.type:malware'. Then call `get_image_malware` per SHA for details.

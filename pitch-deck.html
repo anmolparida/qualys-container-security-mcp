@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Qualys KCS — Sheldon AI Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --orange:#f97316;--blue:#3b82f6;--indigo:#6366f1;
+  --dark:#0f172a;--card:#1e293b;--card2:#162032;
+  --border:#334155;--text:#f1f5f9;--muted:#94a3b8;
+  --green:#22c55e;--red:#ef4444;--yellow:#eab308;
+}
+html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--dark);color:var(--text);overflow:hidden;-webkit-font-smoothing:antialiased}
+.deck{width:100%;height:100vh;position:relative}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;align-items:center;padding:72px 80px 80px;opacity:0;transition:opacity .35s ease}
+.slide.active{display:flex;opacity:1}
+
+/* NAV */
+.nav{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;z-index:100;background:rgba(30,41,59,.9);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:999px;padding:8px 18px}
+.nav button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 10px;border-radius:6px;transition:all .2s;font-family:inherit}
+.nav button:hover{color:var(--text);background:var(--border)}
+.counter{font-size:12px;color:var(--muted);min-width:54px;text-align:center}
+.dots{display:flex;gap:5px;align-items:center}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--border);cursor:pointer;transition:all .25s}
+.dot.active{background:var(--orange);transform:scale(1.5)}
+
+/* LOGO */
+.logo-bar{position:fixed;top:22px;left:28px;display:flex;align-items:center;gap:10px;z-index:100}
+.logo-icon{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#facc15,#f97316);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.logo-text{font-size:13px;font-weight:700}
+.logo-sub{font-size:10px;color:var(--muted)}
+.slide-num{position:fixed;top:22px;right:28px;font-size:11px;color:var(--muted);background:var(--card);border:1px solid var(--border);border-radius:999px;padding:4px 12px;z-index:100}
+
+/* TYPE */
+.tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--orange);background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.3);border-radius:999px;padding:4px 12px;margin-bottom:14px}
+h1{font-size:clamp(26px,4vw,50px);font-weight:800;line-height:1.12;letter-spacing:-.03em}
+h2{font-size:clamp(18px,2.2vw,28px);font-weight:700;letter-spacing:-.02em;margin-bottom:20px}
+h3{font-size:14px;font-weight:600;margin-bottom:8px;color:var(--text)}
+p,li{font-size:14px;line-height:1.65;color:var(--muted)}
+ul{padding-left:18px}
+ul li{margin-bottom:7px}
+ul li::marker{color:var(--orange)}
+
+/* LAYOUT */
+.wide{width:100%;max-width:980px}
+.narrow{width:100%;max-width:700px;text-align:center}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:28px;width:100%;max-width:980px;align-items:start}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;width:100%;max-width:980px}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:9px 14px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)}
+td{padding:9px 14px;border-bottom:1px solid rgba(51,65,85,.45);color:var(--muted);vertical-align:top}
+td:first-child{color:var(--text);font-weight:500}
+tr:last-child td{border-bottom:none}
+code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);border-radius:4px;padding:2px 6px;color:#7dd3fc}
+
+/* BADGES */
+.badge{display:inline-block;font-size:10px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.red{background:rgba(239,68,68,.14);color:#f87171;border:1px solid rgba(239,68,68,.28)}
+.yellow{background:rgba(234,179,8,.14);color:#fbbf24;border:1px solid rgba(234,179,8,.28)}
+.green{background:rgba(34,197,94,.14);color:#4ade80;border:1px solid rgba(34,197,94,.28)}
+.blue{background:rgba(59,130,246,.14);color:#93c5fd;border:1px solid rgba(59,130,246,.28)}
+.purple{background:rgba(99,102,241,.14);color:#a5b4fc;border:1px solid rgba(99,102,241,.28)}
+
+/* Q&A */
+.qa{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:10px}
+.qa-q{font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px}
+.qa-a{font-size:12px;color:var(--muted);line-height:1.6}
+
+/* ROADMAP */
+.rrow{display:flex;align-items:flex-start;gap:12px;padding:11px 0;border-bottom:1px solid rgba(51,65,85,.4)}
+.rrow:last-child{border-bottom:none}
+.rtext{font-size:13px;color:var(--text)}
+.rsub{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* COVER BG */
+.slide-cover{background:radial-gradient(ellipse at 65% 35%,rgba(249,115,22,.13) 0%,transparent 60%),var(--dark)}
+.grad-text{background:linear-gradient(135deg,#f97316,#facc15);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+
+/* ARCH */
+.abox{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;text-align:center}
+.abox .al{font-size:13px;font-weight:600;color:var(--text)}
+.abox .as{font-size:10px;color:var(--muted);margin-top:2px}
+.aarr{color:var(--border);font-size:18px;padding:0 6px;align-self:center}
+
+/* STAT */
+.stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px}
+.snum{font-size:34px;font-weight:800;color:var(--orange);letter-spacing:-.03em}
+.slabel{font-size:12px;color:var(--muted);margin-top:3px}
+
+/* FEATURE */
+.fcard{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px}
+.fcard .fi{font-size:22px;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="logo-bar">
+  <div class="logo-icon">⚡</div>
+  <div><div class="logo-text">Qualys KCS</div><div class="logo-sub">AI Intelligence Platform</div></div>
+</div>
+<div class="slide-num" id="slideNum">1 / 9</div>
+
+<div class="deck">
+
+<!-- ═══ SLIDE 1: COVER ═══ -->
+<div class="slide slide-cover active" id="slide-1">
+  <div class="narrow">
+    <div class="tag">Executive Briefing — Confidential</div>
+    <h1 style="margin-bottom:14px"><span class="grad-text">Sheldon</span><br/>AI Security Intelligence<br/>for Qualys KCS</h1>
+    <p style="font-size:16px;max-width:520px;margin:0 auto 32px">Natural language access to your entire Kubernetes &amp; Container Security posture — powered by live Qualys data and Claude on Amazon Bedrock.</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <span class="badge green">Live Demo Ready</span>
+      <span class="badge yellow">Prototype</span>
+      <span class="badge blue">Amazon Bedrock</span>
+      <span class="badge purple">Qualys CS API</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 2: PROBLEM ═══ -->
+<div class="slide" id="slide-2">
+  <div class="wide">
+    <div class="tag">The Problem</div>
+    <h2>Security teams are drowning in data, not insights.</h2>
+    <div class="two-col">
+      <div>
+        <ul style="margin-bottom:20px">
+          <li>Qualys CS surfaces thousands of vulnerabilities, secrets &amp; misconfigs across containers and K8s</li>
+          <li>Analysts spend hours writing API queries, exporting CSVs, building dashboards</li>
+          <li>By the time a report lands — the data is stale</li>
+          <li>No natural language interface to ask <em style="color:var(--text)">"what's critical right now?"</em></li>
+          <li>Security expertise is siloed — junior engineers can't query the API</li>
+        </ul>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="stat"><div class="snum">40+</div><div class="slabel">API endpoints unused by most teams</div></div>
+          <div class="stat"><div class="snum">~3h</div><div class="slabel">Avg time to build a vulnerability report manually</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px">Without Sheldon</div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>Login to Qualys portal, navigate filters</div>
+          <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>Learn Qualys CS filter token syntax</div>
+          <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>Export CSV, open Excel, build pivot table</div>
+          <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>Create chart, write findings email</div>
+          <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>Repeat next week when data changes</div>
+          <div style="margin-top:10px;padding:10px;background:rgba(239,68,68,.08);border-radius:8px;font-size:12px;color:#f87171">⏱ ~3 hours for a simple query</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 3: SOLUTION ═══ -->
+<div class="slide" id="slide-3">
+  <div class="wide">
+    <div class="tag">The Solution</div>
+    <h2>Meet <span class="grad-text">Sheldon</span> — Ask once, get answers instantly.</h2>
+    <div class="two-col">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="card" style="border-color:rgba(249,115,22,.35)">
+          <div style="font-size:11px;color:var(--orange);font-weight:700;margin-bottom:6px">USER ASKS</div>
+          <div style="font-size:14px;color:var(--text)">"Show me all images with detected secrets"</div>
+        </div>
+        <div style="text-align:center;color:var(--muted);font-size:18px">↓</div>
+        <div class="card" style="border-color:rgba(59,130,246,.35)">
+          <div style="font-size:11px;color:#60a5fa;font-weight:700;margin-bottom:6px">SHELDON CALLS QUALYS API</div>
+          <div style="font-size:12px;color:var(--muted)"><code>find_images_with_secrets</code><br/><code>container.image.hasSecrets:true</code></div>
+        </div>
+        <div style="text-align:center;color:var(--muted);font-size:18px">↓</div>
+        <div class="card" style="border-color:rgba(34,197,94,.35)">
+          <div style="font-size:11px;color:#4ade80;font-weight:700;margin-bottom:6px">ANSWER IN SECONDS</div>
+          <div style="font-size:13px;color:var(--muted)">Live table with image names, SHA, secret counts, and remediation guidance</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">More example queries</div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <div class="card" style="padding:11px 14px"><div style="font-size:13px;color:var(--text)">"Which containers have critical CVEs in production?"</div></div>
+          <div class="card" style="padding:11px 14px"><div style="font-size:13px;color:var(--text)">"Chart image vulnerabilities by severity"</div></div>
+          <div class="card" style="padding:11px 14px"><div style="font-size:13px;color:var(--text)">"Give me Helm YAML for OpenShift sensor with proxy"</div></div>
+          <div class="card" style="padding:11px 14px"><div style="font-size:13px;color:var(--text)">"Show software nearing EOL in the next 3 months"</div></div>
+          <div class="card" style="padding:11px 14px"><div style="font-size:13px;color:var(--text)">"What K8s posture checks are failing?"</div></div>
+          <div class="card" style="padding:11px 14px"><div style="font-size:13px;color:var(--text)">"How do I integrate QScanner into my CI/CD pipeline?"</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 4: ARCHITECTURE ═══ -->
+<div class="slide" id="slide-4">
+  <div class="wide">
+    <div class="tag">Technical Architecture</div>
+    <h2>Live data. No RAG. No stale index.</h2>
+    <div class="two-col">
+      <div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="abox" style="flex:1"><div class="al">React UI</div><div class="as">Vite · Tailwind · Inter</div></div>
+            <div class="aarr">→</div>
+            <div class="abox" style="flex:1"><div class="al">FastAPI</div><div class="as">Async Python · Uvicorn</div></div>
+          </div>
+          <div style="text-align:center;color:var(--muted);font-size:16px">↓</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="abox" style="flex:1;border-color:rgba(249,115,22,.4)"><div class="al" style="color:var(--orange)">Claude 3 Haiku</div><div class="as">Amazon Bedrock</div></div>
+            <div class="aarr">⇄</div>
+            <div class="abox" style="flex:1;border-color:rgba(59,130,246,.4)"><div class="al" style="color:#60a5fa">Qualys CS API</div><div class="as">Live · Real-time</div></div>
+          </div>
+          <div style="text-align:center;color:var(--muted);font-size:16px">↑</div>
+          <div class="abox" style="border-color:rgba(99,102,241,.4)"><div class="al" style="color:#a5b4fc">Shared Tool Registry</div><div class="as">40+ tools · Single source of truth for agent + MCP server</div></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="fcard"><div class="fi">🔴</div><h3>No RAG / No Vector DB</h3><p>Every answer fetches live data from Qualys APIs. No stale index, no embedding pipeline, no hallucinated vulnerability data.</p></div>
+        <div class="fcard"><div class="fi">⚡</div><h3>Parallel Async Tool Calls</h3><p>Multiple Qualys API calls fire simultaneously via <code>asyncio.gather</code> for fast multi-step answers.</p></div>
+        <div class="fcard"><div class="fi">🔒</div><h3>Your AWS, Your Data</h3><p>Claude runs on <strong>your</strong> Amazon Bedrock account. Zero data sharing with Anthropic. Stays within your VPC.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 5: CAPABILITIES ═══ -->
+<div class="slide" id="slide-5">
+  <div class="wide">
+    <div class="tag">Capabilities</div>
+    <h2>What Sheldon can do today.</h2>
+    <div class="card" style="overflow:auto;max-height:370px">
+      <table>
+        <thead><tr><th>Category</th><th>Capability</th><th>Example Query</th></tr></thead>
+        <tbody>
+          <tr><td>🛡️ Vulnerabilities</td><td>Critical CVE analysis across all containers &amp; images</td><td>"Show all critical CVEs running in production"</td></tr>
+          <tr><td>🔑 Secrets</td><td>Detect secrets embedded in image layers</td><td>"Which images have secrets detected?"</td></tr>
+          <tr><td>🦠 Malware</td><td>Malware detection across container layers</td><td>"Find images with malware, show details"</td></tr>
+          <tr><td>📦 SBOM</td><td>Full software inventory per container or image</td><td>"List all software in nginx:latest"</td></tr>
+          <tr><td>⏰ EOL Software</td><td>Packages nearing end-of-life</td><td>"Show packages EOL in the next 3 months"</td></tr>
+          <tr><td>🤖 AI Software</td><td>Detect AI/ML libraries in images</td><td>"Which images have AI software?"</td></tr>
+          <tr><td>☸️ K8s Posture</td><td>Failed security posture control checks</td><td>"What K8s posture checks are failing?"</td></tr>
+          <tr><td>🗄️ Registries</td><td>Scan status &amp; connector health</td><td>"Show registry scan status"</td></tr>
+          <tr><td>📡 Sensors</td><td>Runtime sensor deployment &amp; Helm chart generation</td><td>"Deploy sensor on OpenShift with proxy YAML"</td></tr>
+          <tr><td>🔬 CI/CD</td><td>QScanner integration for pipeline scanning</td><td>"How do I add QScanner to my Jenkins pipeline?"</td></tr>
+          <tr><td>📊 Charts</td><td>Inline pie / bar / line chart visualisations</td><td>"Chart vulnerabilities by severity"</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 6: CI/CD ═══ -->
+<div class="slide" id="slide-6">
+  <div class="wide">
+    <div class="tag">CI/CD Integration</div>
+    <h2>Shift-left with <span class="grad-text">QScanner</span>.</h2>
+    <div class="two-col">
+      <div>
+        <p style="margin-bottom:16px">For all CI/CD, build-time, and pipeline scanning questions Sheldon always recommends and references <strong style="color:var(--text)">QScanner</strong> — the official Qualys CLI tool for shift-left container security.</p>
+        <div class="card" style="border-color:rgba(249,115,22,.3);margin-bottom:14px">
+          <div style="font-size:11px;color:var(--orange);font-weight:700;margin-bottom:8px">QSCANNER DOCS</div>
+          <code style="font-size:11px;display:block;word-break:break-all">docs.qualys.com/en/qscanner/latest/</code>
+        </div>
+        <ul>
+          <li>Scans images at build time before they reach production</li>
+          <li>Integrates with Jenkins, GitHub Actions, GitLab CI, Azure DevOps</li>
+          <li>Returns vulnerability, malware, and secrets findings in CI output</li>
+          <li>Fail the build if critical CVEs are detected</li>
+          <li>Policy-based gates — block deploys based on severity thresholds</li>
+        </ul>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Example QScanner CI step</div>
+        <div class="card" style="background:#0d1117;border-color:#30363d;font-family:Menlo,monospace;font-size:12px;color:#e6edf3;line-height:1.7">
+          <span style="color:#8b949e"># GitHub Actions example</span><br/>
+          <span style="color:#ff7b72">- name:</span> <span style="color:#a5d6ff">Scan image with QScanner</span><br/>
+          &nbsp;&nbsp;<span style="color:#ff7b72">run:</span> <span style="color:#7dd3fc">|</span><br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#e6edf3">qscanner image scan \</span><br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#e6edf3">--image myapp:$&#123;&#123; github.sha &#125;&#125; \</span><br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#e6edf3">--fail-on CRITICAL \</span><br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#e6edf3">--report-format json</span>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Ask Sheldon</div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div style="font-size:12px;color:var(--text)">"How do I integrate QScanner into Jenkins?"</div>
+            <div style="font-size:12px;color:var(--text)">"Show me QScanner commands for image scanning"</div>
+            <div style="font-size:12px;color:var(--text)">"How do I fail a build on critical CVEs?"</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 7: CEO/CTO Q&A ═══ -->
+<div class="slide" id="slide-7">
+  <div class="wide">
+    <div class="tag">Anticipated Questions</div>
+    <h2>CEO / CTO Q&amp;A</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;overflow:auto;max-height:390px">
+      <div class="qa"><div class="qa-q">Is our security data going to OpenAI / Anthropic?</div><div class="qa-a">No. Claude runs on <strong>your Amazon Bedrock account</strong>. Data stays in your AWS VPC. Zero sharing with Anthropic.</div></div>
+      <div class="qa"><div class="qa-q">How is this different from the Qualys UI?</div><div class="qa-a">Qualys UI is form-based — fill filters, export, build reports. Sheldon is conversational — one sentence gets a table, chart, or YAML in seconds.</div></div>
+      <div class="qa"><div class="qa-q">Can it hallucinate vulnerability data?</div><div class="qa-a">No. System prompt enforces: <em>"Never make up data — only report what the API returns."</em> If the API returns nothing, it says so clearly.</div></div>
+      <div class="qa"><div class="qa-q">What's the cost per query?</div><div class="qa-a">Claude 3 Haiku on Bedrock: ~$0.002–0.005 per conversation turn (2 API calls). Extremely low cost for the value delivered.</div></div>
+      <div class="qa"><div class="qa-q">Is this production-ready?</div><div class="qa-a">Developer prototype today. Needs auth middleware, rate limiting, and horizontal scaling before production deployment.</div></div>
+      <div class="qa"><div class="qa-q">How do we add new Qualys API endpoints?</div><div class="qa-a">One file: <code>shared/tool_registry.py</code>. Add a tool definition — auto-appears in both agent and MCP server. No other changes needed.</div></div>
+      <div class="qa"><div class="qa-q">What's the data retention / logging?</div><div class="qa-a">No conversation persistence. History is browser-session only. Backend logs tool names and token counts — no user message content is logged.</div></div>
+      <div class="qa"><div class="qa-q">Can we white-label this for customers?</div><div class="qa-a">Yes — standard React + FastAPI stack. Branding (name, colours, logo) is entirely in <code>App.tsx</code> and <code>index.css</code>.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 8: ROADMAP ═══ -->
+<div class="slide" id="slide-8">
+  <div class="wide">
+    <div class="tag">Roadmap</div>
+    <h2>What's next.</h2>
+    <div class="two-col">
+      <div class="card">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Immediate Priority</div>
+        <div class="rrow"><span class="badge red">High</span><div><div class="rtext">Authentication — SSO / API key per user</div><div class="rsub">Prevent unauthorised access to Qualys data</div></div></div>
+        <div class="rrow"><span class="badge red">High</span><div><div class="rtext">Rate limiting + max agent turn cap</div><div class="rsub">Prevent runaway queries burning Bedrock tokens</div></div></div>
+        <div class="rrow"><span class="badge yellow">Med</span><div><div class="rtext">Convert dashboard routes to async</div><div class="rsub">Remove event loop blocking on sync Qualys calls</div></div></div>
+        <div class="rrow"><span class="badge yellow">Med</span><div><div class="rtext">Persistent conversation history</div><div class="rsub">PostgreSQL / Redis — survive page refresh</div></div></div>
+      </div>
+      <div class="card">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Future</div>
+        <div class="rrow"><span class="badge yellow">Med</span><div><div class="rtext">Multi-tenant credential isolation</div><div class="rsub">Support multiple Qualys subscriptions</div></div></div>
+        <div class="rrow"><span class="badge green">Low</span><div><div class="rtext">PDF / CSV export from chat</div><div class="rsub">One-click report generation</div></div></div>
+        <div class="rrow"><span class="badge green">Low</span><div><div class="rtext">Slack / Teams bot integration</div><div class="rsub">Ask Sheldon directly from your chat tool</div></div></div>
+        <div class="rrow"><span class="badge green">Low</span><div><div class="rtext">Scheduled proactive reports</div><div class="rsub">Daily digest of new critical findings</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 9: DEMO ═══ -->
+<div class="slide" id="slide-9">
+  <div class="wide">
+    <div class="tag">Live Demo</div>
+    <h2>Suggested demo flow.</h2>
+    <div class="three-col">
+      <div class="fcard">
+        <div class="fi">1️⃣</div>
+        <h3>Empty State</h3>
+        <p>Open Sheldon — show the suggestion cards, dark theme, and clean ChatGPT-style UI.</p>
+      </div>
+      <div class="fcard">
+        <div class="fi">2️⃣</div>
+        <h3>Critical CVEs</h3>
+        <p>Click <em>"Show all critical vulnerabilities across containers"</em> — live table appears with real data.</p>
+      </div>
+      <div class="fcard">
+        <div class="fi">3️⃣</div>
+        <h3>Chart</h3>
+        <p>Ask <em>"Chart image vulnerabilities by severity"</em> — inline pie chart renders from agent output.</p>
+      </div>
+      <div class="fcard">
+        <div class="fi">4️⃣</div>
+        <h3>Secrets Detection</h3>
+        <p>Ask <em>"Which images have detected secrets?"</em> — uses <code>container.image.hasSecrets:true</code> filter live.</p>
+      </div>
+      <div class="fcard">
+        <div class="fi">5️⃣</div>
+        <h3>CI/CD — QScanner</h3>
+        <p>Ask <em>"How do I add QScanner to my GitHub Actions pipeline?"</em> — Sheldon generates YAML with docs link.</p>
+      </div>
+      <div class="fcard">
+        <div class="fi">6️⃣</div>
+        <h3>Dashboards</h3>
+        <p>Switch to K8s Posture and Registry Health tabs — live dashboard data without any chat query.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /deck -->
+
+<!-- NAV -->
+<div class="nav">
+  <button onclick="go(-1)">←</button>
+  <div class="dots" id="dots"></div>
+  <div class="counter" id="counter">1 / 9</div>
+  <button onclick="go(1)">→</button>
+</div>
+
+<script>
+const total = 9;
+let cur = 1;
+
+const dots = document.getElementById('dots');
+for(let i=1;i<=total;i++){
+  const d = document.createElement('div');
+  d.className = 'dot' + (i===1?' active':'');
+  d.onclick = ()=>show(i);
+  dots.appendChild(d);
+}
+
+function show(n){
+  document.getElementById('slide-'+cur).classList.remove('active');
+  document.querySelectorAll('.dot')[cur-1].classList.remove('active');
+  cur = Math.max(1,Math.min(total,n));
+  document.getElementById('slide-'+cur).classList.add('active');
+  document.querySelectorAll('.dot')[cur-1].classList.add('active');
+  document.getElementById('counter').textContent = cur+' / '+total;
+  document.getElementById('slideNum').textContent = cur+' / '+total;
+}
+function go(d){show(cur+d);}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' ')go(1);
+  if(e.key==='ArrowLeft')go(-1);
+});
+</script>
+</body>
+</html>
