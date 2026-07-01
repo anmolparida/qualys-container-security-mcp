@@ -28,6 +28,51 @@ to fetch real data before answering. Be concise, clear, and highlight critical s
 When presenting vulnerability data, always lead with critical and high severity issues.
 Never make up data — only report what the API returns.
 
+SENSOR INSTALLATION KNOWLEDGE:
+The official unified Helm chart for all Qualys Container Security sensors is published at:
+https://artifacthub.io/packages/helm/qualys-helm-chart/qualys-tc
+
+Add the Helm repo:
+```bash
+helm repo add qualys https://qualys.github.io/qualys-helm-chart
+helm repo update
+```
+
+Install the QCS sensor (container/image scanning) on a standard Kubernetes cluster:
+```bash
+helm install qualys-cs qualys/qualys-tc \
+  --namespace qualys --create-namespace \
+  --set activationId=<ACTIVATION_ID> \
+  --set customerId=<CUSTOMER_ID> \
+  --set logLevel=3 \
+  --set sensor.image.tag=latest
+```
+
+Install on OpenShift (adds SCC and privileged context):
+```bash
+helm install qualys-cs qualys/qualys-tc \
+  --namespace qualys --create-namespace \
+  --set activationId=<ACTIVATION_ID> \
+  --set customerId=<CUSTOMER_ID> \
+  --set isOpenShift=true \
+  --set logLevel=3 \
+  --set sensor.image.tag=latest
+```
+
+Install the Kubernetes cluster sensor (posture/compliance) separately:
+```bash
+helm install qualys-kcs qualys/qualys-tc \
+  --namespace qualys --create-namespace \
+  --set activationId=<ACTIVATION_ID> \
+  --set customerId=<CUSTOMER_ID> \
+  --set deployClusterSensor=true \
+  --set logLevel=3
+```
+
+On OpenShift, add `--set isOpenShift=true` to any of the above commands.
+Replace <ACTIVATION_ID> and <CUSTOMER_ID> with values from the Qualys portal under Help > About.
+Full chart reference: https://artifacthub.io/packages/helm/qualys-helm-chart/qualys-tc
+
 FORMATTING RULES:
 - Always use markdown tables for lists of items (containers, images, vulnerabilities, registries, clusters, etc.)
 - Use bold (**text**) for severity labels and important values
@@ -42,7 +87,11 @@ FORMATTING RULES:
   ```chart
   {"type": "pie", "title": "Vulnerability Severity", "data": [{"name": "Critical", "value": 5}, {"name": "High", "value": 12}]}
   ```
-- Useful documentation references: Qualys Container Security (https://docs.qualys.com/en/cs/latest/get_started/cs_docs.htm), Container Scanner (https://docs.qualys.com/en/qscanner/latest/qscanner_usage/use_qscanner.htm), CyberSecurity Risk Rating (https://docs.qualys.com/en/crs/latest/get_started/get_started.htm)"""
+- Always include a link to https://artifacthub.io/packages/helm/qualys-helm-chart/qualys-tc when answering sensor installation questions.
+- Documentation: Qualys CS (https://docs.qualys.com/en/cs/latest/get_started/cs_docs.htm), CS API (https://docs.qualys.com/en/cs/api/), CS User Guide (https://docs.qualys.com/en/cs/)
+
+NON-API QUESTIONS:
+For questions about installation, configuration, deployment, or anything not answered by the API tools, use the fetch_docs tool to retrieve content from the relevant Qualys documentation page before answering. Always cite the source URL in your response."""
 
 
 def _make_client() -> anthropic.AnthropicBedrock:
@@ -64,12 +113,64 @@ def get_client() -> anthropic.AnthropicBedrock:
 
 # Anthropic tool definitions are now generated from the shared registry.
 # The MCP server imports the same registry, so both surfaces stay in sync.
-TOOLS = build_anthropic_tools()
+_DOCS_TOOL = {
+    "name": "fetch_docs",
+    "description": (
+        "Fetch the text content of a Qualys documentation page or the Helm chart reference. "
+        "Use this whenever the user asks about installation steps, configuration, sensor deployment, "
+        "or any topic not covered by the Qualys API tools. "
+        "Allowed URLs: docs.qualys.com/*, artifacthub.io/packages/helm/qualys-helm-chart/*, "
+        "qualys.github.io/*, github.com/qualys/*"
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "url": {
+                "type": "string",
+                "description": "The full URL to fetch (must be a Qualys docs or Helm chart page)"
+            }
+        },
+        "required": ["url"]
+    }
+}
+
+TOOLS = build_anthropic_tools() + [_DOCS_TOOL]
+
+
+ALLOWED_DOC_HOSTS = (
+    "docs.qualys.com",
+    "artifacthub.io",
+    "qualys.github.io",
+    "github.com",
+)
+
+
+async def _fetch_docs(url: str) -> str:
+    """Fetch plain text from an allowed Qualys docs/Helm page."""
+    from urllib.parse import urlparse
+    host = urlparse(url).netloc.lstrip("www.")
+    if not any(host.endswith(h) for h in ALLOWED_DOC_HOSTS):
+        return json.dumps({"error": f"URL not allowed: {url}"})
+    try:
+        async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+            resp = await client.get(url, headers={"User-Agent": "QualysCS-Assistant/1.0"})
+            resp.raise_for_status()
+            # Strip HTML tags naively — good enough for docs pages
+            import re
+            text = re.sub(r"<[^>]+>", " ", resp.text)
+            text = re.sub(r"[ \t]{2,}", " ", text)
+            text = re.sub(r"\n{3,}", "\n\n", text)
+            return text[:8000]  # cap to avoid context overflow
+    except Exception as e:
+        return json.dumps({"error": str(e)})
 
 
 async def _call_qualys_tool(name: str, inputs: dict) -> str:
     """Execute a Qualys API call for a tool using the shared route builder."""
     from qualys_client import get_async
+
+    if name == "fetch_docs":
+        return await _fetch_docs(inputs.get("url", ""))
 
     try:
         path, params = build_route(name, inputs)

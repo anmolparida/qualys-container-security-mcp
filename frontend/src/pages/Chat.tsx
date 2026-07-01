@@ -49,7 +49,25 @@ const markdownComponents: any = {
   p: ({ children }: any) => <p className="mb-2 last:mb-0">{children}</p>,
   ul: ({ children }: any) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
   ol: ({ children }: any) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
-  code: ({ children }: any) => <code className="px-1 py-0.5 rounded text-xs font-mono" style={{ background: 'var(--bg-secondary)' }}>{children}</code>,
+  code: ({ children, className }: any) => {
+    const isBlock = className?.startsWith('language-')
+    if (isBlock) {
+      const lang = className?.replace('language-', '') ?? ''
+      return (
+        <div className="my-2 rounded-lg overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
+          {lang && (
+            <div className="px-3 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
+              {lang}
+            </div>
+          )}
+          <pre className="overflow-x-auto p-3 text-xs font-mono leading-relaxed" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
+            <code>{children}</code>
+          </pre>
+        </div>
+      )
+    }
+    return <code className="px-1 py-0.5 rounded text-xs font-mono" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{children}</code>
+  },
 }
 
 function SafeMarkdown({ content }: { content: string }) {
@@ -268,8 +286,6 @@ export default function Chat() {
                   >
                     {m.role === 'user' ? (
                       m.content
-                    ) : streaming && i === messages.length - 1 && m.role === 'assistant' ? (
-                      <pre className="whitespace-pre-wrap font-sans text-sm">{m.content}</pre>
                     ) : (
                       renderAssistantContent(m.content)
                     )}
