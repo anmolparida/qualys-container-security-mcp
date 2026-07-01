@@ -243,48 +243,64 @@ def _truncate_content(content: Any) -> Any:
     return trimmed
 
 
+def _has_block_type(content: Any, block_type: str) -> bool:
+    """Return True if content (str or list) contains a block of the given type."""
+    if not isinstance(content, list):
+        return False
+    return any(
+        (isinstance(b, dict) and b.get("type") == block_type)
+        or (hasattr(b, "type") and getattr(b, "type") == block_type)
+        for b in content
+    )
+
+
 def _truncate_messages(messages: list) -> list:
     """Keep the conversation within the model's context window.
 
-    - Always preserve the most recent user message.
-    - Keep the last MAX_HISTORY_MESSAGES turns.
-    - Truncate oversized assistant/user text and tool result JSON.
-    - Ensure the first message always has role 'user' (Anthropic requirement).
+    Guarantees:
+    - First message is always role='user'.
+    - No orphaned tool_result messages (user msg with tool_results but no preceding assistant tool_use).
+    - No consecutive messages with the same role.
+    - Never returns an empty list (falls back to just the last user message).
     """
     trimmed = [{**msg, "content": _truncate_content(msg.get("content"))} for msg in messages]
-    # Drop messages with empty content
+    # Drop messages with empty/None content
     trimmed = [m for m in trimmed if m.get("content")]
     trimmed = trimmed[-MAX_HISTORY_MESSAGES:]
     # Drop leading non-user messages
     while trimmed and trimmed[0].get("role") != "user":
         trimmed = trimmed[1:]
-    # Remove orphaned tool_result pairs: a user message whose content is a list
-    # of tool_result blocks must be preceded by an assistant message with tool_use blocks.
-    # If truncation removed the assistant tool_use, drop the orphaned tool_result too.
+
+    # Remove orphaned tool_result user messages (no preceding assistant tool_use)
     cleaned = []
-    for i, msg in enumerate(trimmed):
+    for msg in trimmed:
         content = msg.get("content")
-        if (
-            msg.get("role") == "user"
-            and isinstance(content, list)
-            and any(
-                (isinstance(b, dict) and b.get("type") == "tool_result")
-                or (hasattr(b, "type") and getattr(b, "type") == "tool_result")
-                for b in content
-            )
-        ):
-            # Check the previous message has tool_use blocks
+        if msg.get("role") == "user" and _has_block_type(content, "tool_result"):
             prev = cleaned[-1] if cleaned else None
-            prev_content = prev.get("content") if prev else None
-            has_tool_use = prev_content and any(
-                (isinstance(b, dict) and b.get("type") == "tool_use")
-                or (hasattr(b, "type") and getattr(b, "type") == "tool_use")
-                for b in (prev_content if isinstance(prev_content, list) else [])
-            )
-            if not has_tool_use:
+            if not (prev and _has_block_type(prev.get("content"), "tool_use")):
                 continue  # skip orphaned tool_result
         cleaned.append(msg)
-    return cleaned
+
+    # Drop consecutive same-role messages (keep the last one of each run)
+    deduped = []
+    for msg in cleaned:
+        if deduped and deduped[-1].get("role") == msg.get("role"):
+            deduped[-1] = msg  # replace with later message
+        else:
+            deduped.append(msg)
+
+    # Final safety: ensure first message is user
+    while deduped and deduped[0].get("role") != "user":
+        deduped = deduped[1:]
+
+    # If somehow empty, return just the last user message from the original list
+    if not deduped:
+        for msg in reversed(trimmed):
+            if msg.get("role") == "user":
+                return [msg]
+        return []
+
+    return deduped
 
 
 async def run_agent(user_message: str, history: list) -> AsyncGenerator[str, None]:
@@ -307,11 +323,10 @@ async def run_agent(user_message: str, history: list) -> AsyncGenerator[str, Non
         )
         logger.info(f"AGENT  turn {turn}  ← stop_reason={response.stop_reason}  tokens={response.usage.input_tokens}in/{response.usage.output_tokens}out")
 
-        for block in response.content:
-            if hasattr(block, "text"):
-                yield block.text
-
         if response.stop_reason == "end_turn":
+            for block in response.content:
+                if hasattr(block, "text"):
+                    yield block.text
             logger.info("AGENT  done")
             break
 
