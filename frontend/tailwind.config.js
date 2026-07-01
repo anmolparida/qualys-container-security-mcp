@@ -27,10 +27,16 @@ export default {
           '50%':  { boxShadow: 'none', borderColor: 'rgba(234,88,12,0.4)' },
           '100%': { boxShadow: 'none', borderColor: 'rgba(234,88,12,0.4)' },
         },
+        'zap-ripple': {
+          '0%':   { transform: 'scale(0.6)', opacity: '0.8' },
+          '100%': { transform: 'scale(2.4)', opacity: '0' },
+        },
       },
       animation: {
         'zap-flash': 'zap-flash 1.8s ease-in-out infinite',
         'lightning-strike': 'lightning-strike 3s ease-in-out infinite',
+        'zap-ripple': 'zap-ripple 1.8s ease-out infinite',
+        'zap-ripple-delay': 'zap-ripple 1.8s ease-out 0.6s infinite',
       },
     },
   },

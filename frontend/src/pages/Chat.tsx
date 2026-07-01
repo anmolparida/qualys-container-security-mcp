@@ -269,7 +269,13 @@ export default function Chat() {
                   {m.role === 'user' && m.fact && (
                     <div className="mb-2 text-right">
                       <div className="inline-flex items-start gap-2 rounded-lg border-l-4 border-orange-600/60 p-2.5 text-xs text-left max-w-full animate-lightning-strike" style={{ background: 'var(--bg-secondary-alpha)', color: 'var(--text-muted)' }}>
-                        <Zap size={13} fill="currentColor" className="flex-shrink-0 mt-0.5 text-orange-600 animate-zap-flash" />
+                        <span className="relative flex-shrink-0 flex items-center justify-center w-5 h-5 mt-0.5">
+                          <span className="absolute inline-flex w-full h-full rounded-full bg-orange-400 opacity-40 animate-zap-ripple" />
+                          <span className="absolute inline-flex w-full h-full rounded-full bg-orange-400 opacity-25 animate-zap-ripple-delay" />
+                          <span className="relative flex items-center justify-center w-5 h-5 rounded-full bg-orange-500 animate-zap-flash">
+                            <Zap size={11} fill="white" className="text-white" />
+                          </span>
+                        </span>
                         <span>
                           <span className="font-semibold not-italic text-orange-600">Did you know?</span>{' '}
                           <span className="italic">{m.fact}</span>
@@ -278,12 +284,12 @@ export default function Chat() {
                     </div>
                   )}
                   {m.isError ? (
-                    <div className="rounded-2xl border border-red-500/40 bg-red-950/30 px-4 py-3 text-sm rounded-bl-md">
-                      <div className="flex items-start gap-2 text-red-400">
+                    <div className="rounded-2xl px-4 py-3 text-sm rounded-bl-md" style={{ border: '1px solid #f87171', background: 'rgba(254,226,226,0.15)' }}>
+                      <div className="flex items-start gap-2" style={{ color: '#dc2626' }}>
                         <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
                         <div>
                           <p className="font-semibold mb-1">Something went wrong</p>
-                          <p className="text-red-300/80 text-xs font-mono break-all">{m.content}</p>
+                          <p className="text-xs font-mono break-all" style={{ color: '#b91c1c' }}>{m.content}</p>
                         </div>
                       </div>
                     </div>
