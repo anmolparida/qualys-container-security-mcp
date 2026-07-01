@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { streamChat } from '../lib/api'
 import { useChatStore, type Message } from '../store/chatStore'
-import { Send, Bot, User, AlertTriangle } from 'lucide-react'
+import { Send, User, AlertTriangle, Zap } from 'lucide-react'
 import ChartRenderer from '../components/ChartRenderer'
 
 // Error boundary that falls back to plain text if react-markdown crashes.
@@ -234,11 +234,11 @@ export default function Chat() {
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center gap-8">
             <div className="text-center space-y-3">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto shadow-lg shadow-blue-900/20">
-                <Bot size={32} className="text-white" />
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center mx-auto shadow-lg shadow-orange-900/30">
+                <Zap size={32} className="text-white" fill="white" />
               </div>
               <div>
-                <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>AI Security Assistant</p>
+                <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Sheldon</p>
                 <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Ask anything about your container security posture</p>
               </div>
             </div>
@@ -261,8 +261,8 @@ export default function Chat() {
             {messages.map((m, i) => (
               <div key={i} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {m.role === 'assistant' && (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 mt-1">
-                    <Bot size={16} className="text-white" />
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center flex-shrink-0 mt-1">
+                    <Zap size={16} className="text-white" fill="white" />
                   </div>
                 )}
                 <div className={`max-w-[95%] md:max-w-[95%] ${m.role === 'user' ? 'order-1' : 'order-2'}`}>
