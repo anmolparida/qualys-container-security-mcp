@@ -47,8 +47,9 @@ const markdownComponents: any = {
     </a>
   ),
   p: ({ children }: any) => <p className="mb-2 last:mb-0">{children}</p>,
-  ul: ({ children }: any) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
-  ol: ({ children }: any) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+  ul: ({ children }: any) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
+  ol: ({ children }: any) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
+  li: ({ children }: any) => <li className="leading-relaxed pl-1">{children}</li>,
   code: ({ children, className }: any) => {
     const isBlock = className?.startsWith('language-')
     if (isBlock) {
@@ -257,7 +258,7 @@ export default function Chat() {
             </div>
           </div>
         ) : (
-          <div className="space-y-5 max-w-6xl mx-auto pt-4">
+          <div className="space-y-5 mx-auto pt-4" style={{ maxWidth: '52rem' }}>
             {messages.map((m, i) => (
               <div key={i} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {m.role === 'assistant' && (
@@ -337,7 +338,7 @@ export default function Chat() {
 
       {/* Input area */}
       <div className="border-t flex-shrink-0 p-4" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
-        <div className="max-w-6xl mx-auto flex gap-3">
+        <div className="mx-auto flex gap-3" style={{ maxWidth: '52rem' }}>
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
