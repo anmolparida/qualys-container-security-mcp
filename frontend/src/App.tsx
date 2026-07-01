@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Container, ImageIcon, Database, Network, Zap, Shield, Sun, Moon, ExternalLink } from 'lucide-react'
+import { Container, ImageIcon, Database, Network, Zap, Sun, Moon, ExternalLink } from 'lucide-react'
 import ContainerOverview from './pages/ContainerOverview'
 import ImageVulnerabilities from './pages/ImageVulnerabilities'
 import RegistryHealth from './pages/RegistryHealth'
@@ -27,15 +27,15 @@ export default function App() {
       {/* Sidebar */}
       <aside className="w-60 flex flex-col flex-shrink-0" style={{ background: 'var(--sidebar-bg)', borderRight: '1px solid var(--border)' }}>
         <div className="p-5">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-red-500 flex items-center justify-center shadow-lg">
-              <Shield size={20} className="text-white" />
+          <button onClick={() => setTab('chat')} className="flex items-center gap-3 w-full text-left hover:opacity-80 transition-opacity">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg">
+              <Zap size={20} className="text-white" fill="white" />
             </div>
             <div>
-              <p className="text-sm font-bold text-white tracking-tight">Qualys CS</p>
+              <p className="text-sm font-bold text-white tracking-tight">Qualys KCS</p>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Intelligence Platform</p>
             </div>
-          </div>
+          </button>
         </div>
 
         <nav className="flex-1 px-3 py-2 space-y-1">
