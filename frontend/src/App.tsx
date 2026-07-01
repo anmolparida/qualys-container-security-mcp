@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Container, ImageIcon, Database, Network, Sparkles, Shield, Sun, Moon, ExternalLink } from 'lucide-react'
+import { Container, ImageIcon, Database, Network, Zap, Shield, Sun, Moon, ExternalLink } from 'lucide-react'
 import ContainerOverview from './pages/ContainerOverview'
 import ImageVulnerabilities from './pages/ImageVulnerabilities'
 import RegistryHealth from './pages/RegistryHealth'
@@ -14,7 +14,7 @@ const NAV = [
   { id: 'images' as Tab, label: 'Image Vulns', icon: ImageIcon },
   { id: 'registry' as Tab, label: 'Registry Health', icon: Database },
   { id: 'k8s' as Tab, label: 'K8s Posture', icon: Network },
-  { id: 'chat' as Tab, label: 'Sheldon', icon: Sparkles },
+  { id: 'chat' as Tab, label: 'Agent Sheldon', icon: Zap },
 ]
 
 export default function App() {
@@ -91,9 +91,18 @@ export default function App() {
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden" style={{ color: 'var(--text-primary)' }}>
         <header className="h-16 flex items-center justify-between px-6 border-b flex-shrink-0" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
-          <div>
-            <h1 className="text-lg font-semibold">{active?.label}</h1>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Powered by Sheldon · Qualys CS</p>
+          <div className="flex items-center gap-3">
+            {tab === 'chat' && (
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-md shadow-orange-900/20 flex-shrink-0">
+                <Zap size={16} className="text-white" fill="white" />
+              </div>
+            )}
+            <div>
+              <h1 className="text-lg font-semibold leading-tight">{active?.label}</h1>
+              <p className="text-xs leading-tight" style={{ color: 'var(--text-muted)' }}>
+                {tab === 'chat' ? 'Qualys | Kubernetes & Container Security' : 'Qualys Container Security API'}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
             <span className="w-2 h-2 rounded-full bg-green-500" />

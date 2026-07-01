@@ -239,7 +239,7 @@ export default function Chat() {
                 <Zap size={32} className="text-white" fill="white" />
               </div>
               <div>
-                <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Sheldon</p>
+                <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Agent Sheldon</p>
                 <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Ask anything about your container security posture</p>
               </div>
             </div>
