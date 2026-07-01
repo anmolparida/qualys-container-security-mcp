@@ -4,11 +4,30 @@ from qualys_client import get
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 
+def _vuln_counts(vuln: dict) -> dict:
+    """Normalise Qualys vulnerability dict (severityNCount or critical/high keys)."""
+    if "severity5Count" in vuln:
+        return {
+            "CRITICAL": vuln.get("severity5Count", 0),
+            "HIGH":     vuln.get("severity4Count", 0),
+            "MEDIUM":   vuln.get("severity3Count", 0),
+            "LOW":      vuln.get("severity2Count", 0),
+            "NONE":     vuln.get("severity1Count", 0),
+        }
+    return {
+        "CRITICAL": vuln.get("critical", 0),
+        "HIGH":     vuln.get("high", 0),
+        "MEDIUM":   vuln.get("medium", 0),
+        "LOW":      vuln.get("low", 0),
+        "NONE":     0,
+    }
+
+
 @router.get("/containers/overview")
 async def container_overview():
     """Aggregate container stats: total, vuln severity breakdown, top risky containers."""
     data = get("/containers", {"pageSize": 100})
-    containers = data.get("list", [])
+    containers = data.get("data", data.get("list", []))
 
     severity_counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "NONE": 0}
     running = 0
@@ -21,15 +40,15 @@ async def container_overview():
         else:
             stopped += 1
 
-        vuln_summary = c.get("vulnerabilities", {})
+        counts = _vuln_counts(c.get("vulnerabilities", {}))
         for sev in severity_counts:
-            severity_counts[sev] += vuln_summary.get(sev.lower(), 0)
+            severity_counts[sev] += counts[sev]
 
     top_risky = sorted(
         containers,
         key=lambda c: (
-            c.get("vulnerabilities", {}).get("critical", 0) * 1000
-            + c.get("vulnerabilities", {}).get("high", 0) * 100
+            _vuln_counts(c.get("vulnerabilities", {}))["CRITICAL"] * 1000
+            + _vuln_counts(c.get("vulnerabilities", {}))["HIGH"] * 100
         ),
         reverse=True,
     )[:10]
@@ -44,8 +63,8 @@ async def container_overview():
                 "id": c.get("containerId"),
                 "name": c.get("name") or c.get("imageId", "unknown"),
                 "state": c.get("state"),
-                "critical": c.get("vulnerabilities", {}).get("critical", 0),
-                "high": c.get("vulnerabilities", {}).get("high", 0),
+                "critical": _vuln_counts(c.get("vulnerabilities", {}))["CRITICAL"],
+                "high":     _vuln_counts(c.get("vulnerabilities", {}))["HIGH"],
             }
             for c in top_risky
         ],
@@ -56,20 +75,22 @@ async def container_overview():
 async def image_vulnerabilities():
     """Aggregate image vulnerability stats: severity totals, top vulnerable images."""
     data = get("/images", {"pageSize": 100})
-    images = data.get("list", [])
+    images = data.get("data", data.get("list", []))
 
     severity_totals = {"critical": 0, "high": 0, "medium": 0, "low": 0}
 
     for img in images:
-        vuln = img.get("vulnerabilities", {})
-        for sev in severity_totals:
-            severity_totals[sev] += vuln.get(sev, 0)
+        counts = _vuln_counts(img.get("vulnerabilities", {}))
+        severity_totals["critical"] += counts["CRITICAL"]
+        severity_totals["high"]     += counts["HIGH"]
+        severity_totals["medium"]   += counts["MEDIUM"]
+        severity_totals["low"]      += counts["LOW"]
 
     top_vulnerable = sorted(
         images,
         key=lambda i: (
-            i.get("vulnerabilities", {}).get("critical", 0) * 1000
-            + i.get("vulnerabilities", {}).get("high", 0) * 100
+            _vuln_counts(i.get("vulnerabilities", {}))["CRITICAL"] * 1000
+            + _vuln_counts(i.get("vulnerabilities", {}))["HIGH"] * 100
         ),
         reverse=True,
     )[:10]
@@ -79,13 +100,13 @@ async def image_vulnerabilities():
         "severity_totals": severity_totals,
         "top_vulnerable_images": [
             {
-                "sha": img.get("imageId"),
-                "name": img.get("label", [{}])[0].get("name", "unknown") if img.get("label") else "unknown",
-                "tag": img.get("tag", ""),
-                "critical": img.get("vulnerabilities", {}).get("critical", 0),
-                "high": img.get("vulnerabilities", {}).get("high", 0),
-                "medium": img.get("vulnerabilities", {}).get("medium", 0),
-                "low": img.get("vulnerabilities", {}).get("low", 0),
+                "sha": img.get("sha") or img.get("imageId"),
+                "name": (img.get("repo") or [{}])[0].get("repository", "unknown"),
+                "tag":  (img.get("repo") or [{}])[0].get("tag", ""),
+                "critical": _vuln_counts(img.get("vulnerabilities", {}))["CRITICAL"],
+                "high":     _vuln_counts(img.get("vulnerabilities", {}))["HIGH"],
+                "medium":   _vuln_counts(img.get("vulnerabilities", {}))["MEDIUM"],
+                "low":      _vuln_counts(img.get("vulnerabilities", {}))["LOW"],
             }
             for img in top_vulnerable
         ],
@@ -96,7 +117,7 @@ async def image_vulnerabilities():
 async def registry_health():
     """Registry list with scan status and connector health."""
     data = get("/registry", {"pageSize": 100})
-    registries = data.get("list", [])
+    registries = data.get("data", data.get("list", []))
 
     return {
         "total": len(registries),
@@ -118,7 +139,7 @@ async def registry_health():
 async def k8s_posture():
     """K8s cluster overview with posture pass/fail counts."""
     clusters_data = get("/k8sClusters", {"pageSize": 100})
-    clusters = clusters_data.get("list", [])
+    clusters = clusters_data.get("data", clusters_data.get("list", []))
 
     posture_count = get("/k8s_postures/count", {})
 
