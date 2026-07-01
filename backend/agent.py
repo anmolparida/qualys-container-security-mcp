@@ -91,7 +91,8 @@ FORMATTING RULES:
 - Documentation: Qualys CS (https://docs.qualys.com/en/cs/latest/get_started/cs_docs.htm), CS API (https://docs.qualys.com/en/cs/api/), CS User Guide (https://docs.qualys.com/en/cs/)
 
 NON-API QUESTIONS:
-For questions about installation, configuration, deployment, or anything not answered by the API tools, use the fetch_docs tool to retrieve content from the relevant Qualys documentation page before answering. Always cite the source URL in your response."""
+For questions about installation, configuration, deployment, or anything not answered by the API tools, use the fetch_docs tool to retrieve content from the relevant Qualys documentation page before answering. Always cite the source URL in your response.
+If the question is about other Qualys products outside Container Security (e.g. VMDR, WAS, EDR, CSAM, Policy Compliance, etc.), use fetch_docs with https://www.qualys.com/ to find the relevant product information and direct the user there."""
 
 
 def _make_client() -> anthropic.AnthropicBedrock:
@@ -120,7 +121,7 @@ _DOCS_TOOL = {
         "Use this whenever the user asks about installation steps, configuration, sensor deployment, "
         "or any topic not covered by the Qualys API tools. "
         "Allowed URLs: docs.qualys.com/*, artifacthub.io/packages/helm/qualys-helm-chart/*, "
-        "qualys.github.io/*, github.com/qualys/*"
+        "qualys.github.io/*, github.com/qualys/*, qualys.com/*"
     ),
     "input_schema": {
         "type": "object",
@@ -142,6 +143,7 @@ ALLOWED_DOC_HOSTS = (
     "artifacthub.io",
     "qualys.github.io",
     "github.com",
+    "qualys.com",
 )
 
 

@@ -61,6 +61,7 @@ export default function App() {
             { label: 'Sensor Helm Chart', href: 'https://artifacthub.io/packages/helm/qualys-helm-chart/qualys-tc' },
             { label: 'CS API Docs', href: 'https://docs.qualys.com/en/cs/api/' },
             { label: 'CS User Guide', href: 'https://docs.qualys.com/en/cs/' },
+            { label: 'QScanner Commands', href: 'https://docs.qualys.com/en/qscanner/latest/qscanner_usage/qscanner_commands.htm' },
           ].map(({ label, href }) => (
             <a
               key={href}
