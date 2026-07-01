@@ -11,6 +11,27 @@ export default {
           card: '#0f3460',
         },
       },
+      keyframes: {
+        'zap-flash': {
+          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+          '20%': { opacity: '0.2', transform: 'scale(0.8)' },
+          '40%': { opacity: '1', transform: 'scale(1.3)' },
+          '60%': { opacity: '0.3', transform: 'scale(0.85)' },
+          '80%': { opacity: '1', transform: 'scale(1.1)' },
+        },
+        'lightning-strike': {
+          '0%':   { boxShadow: 'none', borderColor: 'rgba(234,88,12,0.4)' },
+          '10%':  { boxShadow: '0 0 8px 2px rgba(251,146,60,0.8)', borderColor: 'rgba(251,146,60,1)' },
+          '20%':  { boxShadow: 'none', borderColor: 'rgba(234,88,12,0.2)' },
+          '30%':  { boxShadow: '0 0 16px 4px rgba(251,146,60,0.6)', borderColor: 'rgba(251,146,60,0.9)' },
+          '50%':  { boxShadow: 'none', borderColor: 'rgba(234,88,12,0.4)' },
+          '100%': { boxShadow: 'none', borderColor: 'rgba(234,88,12,0.4)' },
+        },
+      },
+      animation: {
+        'zap-flash': 'zap-flash 1.8s ease-in-out infinite',
+        'lightning-strike': 'lightning-strike 3s ease-in-out infinite',
+      },
     },
   },
   plugins: [],
