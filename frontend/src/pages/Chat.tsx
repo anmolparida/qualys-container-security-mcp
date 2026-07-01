@@ -297,14 +297,14 @@ export default function Chat() {
                     </div>
                   ) : (
                   <div
-                    className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                    className={`rounded-2xl px-4 py-3.5 text-sm leading-relaxed ${
                       m.role === 'user'
-                        ? 'bg-blue-600 text-white rounded-br-md'
-                        : 'border rounded-bl-md'
+                        ? 'text-white rounded-br-sm shadow-md'
+                        : 'rounded-bl-sm shadow-sm border'
                     }`}
                     style={m.role === 'user'
-                      ? { whiteSpace: 'pre-wrap' }
-                      : { background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }
+                      ? { background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)', whiteSpace: 'pre-wrap' }
+                      : { background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)', boxShadow: '0 1px 8px 0 rgba(0,0,0,0.07)' }
                     }
                   >
                     {m.role === 'user' ? (
@@ -313,20 +313,21 @@ export default function Chat() {
                       renderAssistantContent(m.content)
                     )}
                     {streaming && i === messages.length - 1 && m.role === 'assistant' && (
-                      <div className="flex items-center gap-3 mt-3 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
-                        <div className="relative w-5 h-5">
-                          <span className="absolute inset-0 rounded-full border-2 border-slate-500/30" />
-                          <span className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-400 animate-spin" />
-                        </div>
-                        <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Analyzing your Qualys data...</span>
+                      <div className="flex items-center gap-2 mt-3 pt-2.5 border-t" style={{ borderColor: 'var(--border)' }}>
+                        <span className="flex gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </span>
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Agent Sheldon is thinking...</span>
                       </div>
                     )}
                   </div>
                   )}
                 </div>
                 {m.role === 'user' && (
-                  <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0 mt-1 order-2">
-                    <User size={16} className="text-white" />
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 order-2 shadow-sm" style={{ background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)' }}>
+                    <User size={15} className="text-white" />
                   </div>
                 )}
               </div>
