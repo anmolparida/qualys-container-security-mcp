@@ -239,7 +239,7 @@ export default function Chat() {
                 <Zap size={28} className="text-white" fill="white" />
               </div>
               <div>
-                <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Agent Sheldon</p>
+                <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Sheldon</p>
                 <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Ask anything about your container security posture</p>
               </div>
             </div>
@@ -269,7 +269,7 @@ export default function Chat() {
                 <div className={`max-w-[95%] md:max-w-[95%] ${m.role === 'user' ? 'order-1' : 'order-2'}`}>
                   {m.role === 'user' && m.fact && (
                     <div className="mb-2 text-right">
-                      <div className="inline-flex items-center gap-2 rounded-lg border-l-4 border-orange-600/60 p-2.5 text-xs text-left max-w-full animate-lightning-strike" style={{ background: 'var(--bg-secondary-alpha)', color: 'var(--text-muted)' }}>
+                      <div className="inline-flex items-center gap-2 rounded-lg border-l-4 border-orange-600/60 p-2.5 text-xs text-left max-w-full" style={{ background: 'var(--bg-secondary-alpha)', color: 'var(--text-muted)' }}>
                         <span className="relative flex-shrink-0 flex items-center justify-center w-4 h-4" style={{ overflow: 'visible' }}>
                           <span className="absolute inline-flex w-4 h-4 rounded-full bg-orange-400" style={{ animation: 'zap-ripple 3s ease-out infinite' }} />
                           <span className="absolute inline-flex w-4 h-4 rounded-full bg-orange-400" style={{ animation: 'zap-ripple 3s ease-out 1s infinite' }} />
@@ -319,7 +319,7 @@ export default function Chat() {
                           <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '150ms' }} />
                           <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '300ms' }} />
                         </span>
-                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Agent Sheldon is thinking...</span>
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Sheldon is thinking...</span>
                       </div>
                     )}
                   </div>

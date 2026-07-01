@@ -172,15 +172,15 @@ TOOLS: list[ToolDef] = [
     },
     {
         "name": "find_images_with_secrets",
-        "description": "Find all images that have secrets detected.",
+        "description": "Find all images that have secrets detected. Uses filter 'detection.type:secret' per Qualys CS search token docs.",
         "parameters": {"page_size": {"type": "integer", "default": 50}},
-        "route": _path("/images", {"filter": "secretsCount:>0", "sort": "secretsCount:desc"}),
+        "route": _path("/images", {"filter": "container.image.hasSecrets:true", "sort": "created:desc"}),
     },
     {
         "name": "find_images_with_malware",
-        "description": "Find all images that have malware detected.",
+        "description": "Find all images that have malware detected. Uses filter 'detection.type:malware' per Qualys CS search token docs.",
         "parameters": {"page_size": {"type": "integer", "default": 50}},
-        "route": _path("/images", {"filter": "malwareCount:>0", "sort": "malwareCount:desc"}),
+        "route": _path("/images", {"filter": "malware.imageMalwareCount:>0", "sort": "created:desc"}),
     },
     {
         "name": "find_images_by_vuln_severity",

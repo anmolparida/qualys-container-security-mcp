@@ -14,7 +14,7 @@ const NAV = [
   { id: 'images' as Tab, label: 'Image Vulns', icon: ImageIcon },
   { id: 'registry' as Tab, label: 'Registry Health', icon: Database },
   { id: 'k8s' as Tab, label: 'K8s Posture', icon: Network },
-  { id: 'chat' as Tab, label: 'Agent Sheldon', icon: Zap },
+  { id: 'chat' as Tab, label: 'Sheldon', icon: Zap },
 ]
 
 export default function App() {
@@ -63,6 +63,7 @@ export default function App() {
             { label: 'CS User Guide', href: 'https://docs.qualys.com/en/cs/' },
             { label: 'QScanner Commands', href: 'https://docs.qualys.com/en/qscanner/latest/qscanner_usage/qscanner_commands.htm' },
             { label: 'Release Notes', href: 'https://www.qualys.com/documentation/release-notes' },
+            { label: 'CS Search Tokens', href: 'https://docs.qualys.com/en/cs/latest/search_tips/search_tokens.htm' },
           ].map(({ label, href }) => (
             <a
               key={href}
@@ -99,9 +100,9 @@ export default function App() {
               </div>
             )}
             <div>
-              <h1 className="text-lg font-semibold leading-tight">{active?.label}</h1>
-              <p className="text-xs leading-tight" style={{ color: 'var(--text-muted)' }}>
-                {tab === 'chat' ? 'Qualys | Kubernetes & Container Security' : 'Qualys Container Security API'}
+              <h1 className="text-lg font-bold leading-tight">{active?.label}</h1>
+              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--text-muted)' }}>
+                {tab === 'chat' ? 'AI Assistant | Kubernetes & Container Security' : 'Qualys Container Security API'}
               </p>
             </div>
           </div>

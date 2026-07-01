@@ -73,6 +73,23 @@ On OpenShift, add `--set isOpenShift=true` to any of the above commands.
 Replace <ACTIVATION_ID> and <CUSTOMER_ID> with values from the Qualys portal under Help > About.
 Full chart reference: https://artifacthub.io/packages/helm/qualys-helm-chart/qualys-tc
 
+KNOWN FILTER TOKENS (use these exactly when building filter params):
+- Images active in last 24h:     imagesInUse:[now-1d ... now]
+- Images with detected secrets:   container.image.hasSecrets:true
+- Images with malware:            malware.imageMalwareCount:>0
+- Software nearing EOL (3 months): software.lifecycle.eol:[now .. now+3M]
+- Images with AI software:        container.image.hasAiSoftware:true
+- Reference for all tokens: https://docs.qualys.com/en/cs/latest/search_tips/search_tokens.htm
+- If a filter fails, fetch the above URL to find the correct token syntax and retry.
+
+SECRETS & MALWARE WORKFLOWS:
+- To find images with detected secrets: call `find_images_with_secrets` — this uses filter 'detection.type:secret'. Then for each image SHA returned, call `get_image_secrets` to get actual secret details.
+- To find images with malware: call `find_images_with_malware` — uses filter 'detection.type:malware'. Then call `get_image_malware` per SHA for details.
+- To list secret detection rules: call `list_secret_detectors`.
+- NEVER try to filter `/images` manually for secrets — always use the dedicated `find_images_with_secrets` tool.
+- If a filter query fails, fetch https://docs.qualys.com/en/cs/latest/search_tips/search_tokens.htm to find the correct token syntax, then retry with the correct filter value.
+- Qualys CS search token reference: https://docs.qualys.com/en/cs/latest/search_tips/search_tokens.htm — consult this whenever building filter strings for any API tool call.
+
 FORMATTING RULES:
 - Always use markdown tables for lists of items (containers, images, vulnerabilities, registries, clusters, etc.)
 - Use bold (**text**) for severity labels and important values
