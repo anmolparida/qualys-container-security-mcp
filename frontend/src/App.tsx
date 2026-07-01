@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Container, ImageIcon, Database, Network, Sparkles, Shield, Sun, Moon } from 'lucide-react'
+import { Container, ImageIcon, Database, Network, Sparkles, Shield, Sun, Moon, ExternalLink } from 'lucide-react'
 import ContainerOverview from './pages/ContainerOverview'
 import ImageVulnerabilities from './pages/ImageVulnerabilities'
 import RegistryHealth from './pages/RegistryHealth'
@@ -55,7 +55,27 @@ export default function App() {
           ))}
         </nav>
 
-        <div className="p-4 border-t space-y-2" style={{ borderColor: 'var(--border)' }}>
+        <div className="px-3 pb-2 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
+          <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Resources</p>
+          {[
+            { label: 'Sensor Helm Chart', href: 'https://artifacthub.io/packages/helm/qualys-helm-chart/qualys-tc' },
+            { label: 'CS API Docs', href: 'https://docs.qualys.com/en/cs/api/' },
+            { label: 'CS User Guide', href: 'https://docs.qualys.com/en/cs/' },
+          ].map(({ label, href }) => (
+            <a
+              key={href}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-white hover:bg-[var(--bg-secondary-alpha)] transition-all"
+            >
+              <span>{label}</span>
+              <ExternalLink size={12} className="flex-shrink-0 opacity-60" />
+            </a>
+          ))}
+        </div>
+
+        <div className="p-4 border-t" style={{ borderColor: 'var(--border)' }}>
           <button
             onClick={toggle}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-[var(--bg-secondary-alpha)] transition-all"
