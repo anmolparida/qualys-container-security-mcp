@@ -1,6 +1,6 @@
-# Qualys Container Security MCP
+# Qualys KCS — AI Security Intelligence Platform
 
-An AI-powered container security intelligence assistant built on top of the **Qualys Container Security (CS)** API. It combines a Python MCP (Model Context Protocol) server, a FastAPI backend orchestrator, and a React + Tailwind frontend to let security teams ask natural-language questions about containers, images, vulnerabilities, registries, Kubernetes clusters, and sensors.
+An AI-powered Kubernetes & Container Security intelligence platform built on top of the **Qualys Container Security (CS)** API. It combines a Python MCP (Model Context Protocol) server, a FastAPI backend orchestrator, and a React + Tailwind frontend to let security teams ask natural-language questions about containers, images, vulnerabilities, registries, Kubernetes clusters, and sensors — powered by **Sheldon**, the AI assistant.
 
 ## Table of Contents
 
@@ -13,24 +13,26 @@ An AI-powered container security intelligence assistant built on top of the **Qu
 - [Project Structure](#project-structure)
 - [API Endpoints](#api-endpoints)
 - [MCP Tools](#mcp-tools)
+- [Known Filter Tokens](#known-filter-tokens)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
 
 ## Overview
 
-This project is an AI-powered container security intelligence assistant that uses the Model Context Protocol (MCP) to let LLM agents interact with the Qualys Container Security API. It enables conversational exploration of container security data, including:
+**Sheldon** is an AI assistant for Qualys Container Security. It uses a tool-calling agent pattern (not RAG) — all data is fetched live from the Qualys CS API at query time, so results are always current. It enables conversational exploration of:
 
 - Container and image inventories
 - Vulnerability counts and details (CVE, severity, affected components)
 - Detected secrets and malware in images
 - Software bills of materials (SBOM) for containers/images
-- Policy compliance status
+- Policy compliance and security posture
 - Registries and repositories
-- Kubernetes clusters, pods, and sensors
-- Security dashboards and summaries
+- Kubernetes clusters, pods, namespaces, and sensors
+- Security posture dashboards and summaries
+- Inline chart visualizations (pie, bar, line) rendered from agent output
 
-The backend uses **Claude on Amazon Bedrock** for reasoning and tool selection, while the MCP server exposes the actual Qualys API tools in a structured way.
+The backend uses **Claude on Amazon Bedrock** for reasoning and tool selection. There is no vector database or embedding layer — the agent calls Qualys APIs directly via structured tools.
 
 ## Architecture
 
@@ -56,21 +58,28 @@ The backend uses **Claude on Amazon Bedrock** for reasoning and tool selection, 
 
 ## How It Works
 
-When a user asks a question in the AI Assistant chat, the following steps happen:
+When a user asks a question in the **Sheldon** chat, the following steps happen:
 
 1. **User submits a prompt** in the React frontend at `http://localhost:5173`.
-2. The frontend sends the message to the FastAPI backend via a POST request to `/api/chat/` with a streaming response.
-3. The backend receives the message in `backend/routes/chat.py` and starts the agent loop in `backend/agent.py`.
-4. The agent constructs a conversation with the system prompt and the user's message, then calls **Claude on Amazon Bedrock**.
-5. Claude decides whether it needs more data. If it does, it returns one or more `tool_use` requests.
-6. The agent executes the requested Qualys API calls in parallel using `asyncio.gather`. Each call goes through the shared async HTTP client in `backend/qualys_client.py`.
-7. The raw API responses are returned as JSON `tool_result` blocks to Claude.
-8. Claude reasons over the data and writes a final answer. It uses markdown tables for lists and can emit ````chart` blocks for pie, bar, or line charts.
-9. The answer is streamed back to the frontend chunk by chunk.
-10. The frontend renders the streaming text, then parses any markdown tables and chart blocks into styled tables and Recharts visualizations.
-11. The conversation history is kept in the current browser session but is not persisted to any database.
+2. The frontend sends the message + conversation history to the FastAPI backend via a POST to `/api/chat/` with a streaming response.
+3. The backend starts the agent loop in `backend/agent.py`, truncating/sanitising the history to avoid Anthropic API errors (orphaned tool_results, consecutive same-role messages, empty lists).
+4. The agent calls **Claude on Amazon Bedrock** with the system prompt, tool definitions, and sanitised history.
+5. Claude decides whether it needs data. If so, it returns `tool_use` blocks.
+6. The agent executes all tool calls in parallel via `asyncio.gather` using the shared async `httpx` client in `backend/qualys_client.py`.
+7. Tool results are returned as `tool_result` blocks. Claude reasons over the data and produces a final answer.
+8. **Only the final answer is streamed to the UI** — intermediate tool-use text is suppressed.
+9. The frontend renders the streaming text, parses markdown tables into styled tables and `chart` code blocks into Recharts visualizations.
+10. Conversation history is stored in the browser session only — nothing is persisted server-side.
 
 Dashboard tabs (Containers, Images, Registry, K8s) bypass the LLM and call the Qualys API directly through the backend for faster summary views.
+
+### Agent Architecture Notes
+
+- **No RAG / no vector DB** — all data is fetched live from Qualys APIs
+- **Shared tool registry** (`shared/tool_registry.py`) — single source of truth for tool definitions used by both the agent and the MCP server
+- **Async tool calls** — agent calls are fully async; dashboard routes use sync calls (blocking, acceptable for low-concurrency use)
+- **No max concurrency cap** on parallel tool calls — Qualys API rate limits apply
+- **No max turn limit** — Claude self-limits but a runaway query could loop; monitor `backend.log`
 
 ## Prerequisites
 
@@ -302,12 +311,25 @@ tail -f backend.log frontend.log
 
 The backend CORS middleware allows `http://localhost:5173` and `http://localhost:3000`. If you run the frontend on a different port, update `backend/main.py` `allow_origins` accordingly.
 
+## Known Filter Tokens
+
+These Qualys CS search token filter strings are used by the agent when querying the API. Reference: https://docs.qualys.com/en/cs/latest/search_tips/search_tokens.htm
+
+| Query | Filter Token |
+|---|---|
+| Images active in last 24h | `imagesInUse:[now-1d ... now]` |
+| Images with detected secrets | `container.image.hasSecrets:true` |
+| Images with malware | `malware.imageMalwareCount:>0` |
+| Software nearing EOL (3 months) | `software.lifecycle.eol:[now .. now+3M]` |
+| Images with AI software | `container.image.hasAiSoftware:true` |
+| Critical vulnerabilities | `vulnerability.severity:CRITICAL` |
+
 ## Contributing
 
 If you want to extend this project:
 
-1. Add new MCP tools in `mcp_server/server.py`
-2. Mirror the tool definitions in `backend/agent.py` so the LLM knows about them
+1. Add new tools to `shared/tool_registry.py` — they are automatically picked up by both the agent and the MCP server
+2. Update the system prompt in `backend/agent.py` if the new tools need workflow guidance
 3. Add new frontend pages or components under `frontend/src/pages/` and `frontend/src/components/`
 4. Keep `.env` out of commits — the `.gitignore` already handles this
 
