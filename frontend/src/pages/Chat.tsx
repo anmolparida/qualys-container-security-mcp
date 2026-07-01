@@ -120,16 +120,6 @@ const SUGGESTIONS = [
 ]
 
 const QUALYS_FACTS = [
-  'Qualys Container Security provides agentless vulnerability scanning for containers and images.',
-  'The Container Security sensor can be deployed as a DaemonSet on Kubernetes clusters.',
-  'Qualys CS supports scanning images in Docker, containerd, and CRI-O runtimes.',
-  'Vulnerability data is correlated with the Qualys KnowledgeBase for accurate CVE detection.',
-  'Registry scanning helps identify vulnerabilities before images reach production.',
-  'Runtime container scanning detects threats in running workloads without affecting performance.',
-  'Qualys Container Security integrates with CI/CD pipelines for shift-left security.',
-  'The platform supports AWS, Azure, and GCP container registries.',
-  'Container posture assessments help enforce CIS benchmarks and security policies.',
-  'Software bill of materials (SBOM) is available for scanned containers and images.',
   'Qualys CS can detect secrets and sensitive data accidentally baked into container images.',
   'The unified Helm chart qualys-tc deploys all Qualys sensors — CS, PC, and VM — in a single release.',
   'Qualys assigns a Risk Score (0–1000) to each container based on vulnerability severity and exploitability.',
@@ -150,6 +140,16 @@ const QUALYS_FACTS = [
   'Qualys CS supports multi-cluster management, letting you view posture across dev, staging, and prod from a single pane.',
   'The platform can scan images stored in private registries without requiring the registry to be internet-accessible.',
   'Qualys Container Security risk scores feed directly into the Qualys CyberSecurity Asset Management (CSAM) platform for unified asset risk.',
+  'Qualys Container Security provides agentless vulnerability scanning for containers and images.',
+  'The Container Security sensor can be deployed as a DaemonSet on Kubernetes clusters.',
+  'Qualys CS supports scanning images in Docker, containerd, and CRI-O runtimes.',
+  'Vulnerability data is correlated with the Qualys KnowledgeBase for accurate CVE detection.',
+  'Registry scanning helps identify vulnerabilities before images reach production.',
+  'Runtime container scanning detects threats in running workloads without affecting performance.',
+  'Qualys Container Security integrates with CI/CD pipelines for shift-left security.',
+  'The platform supports AWS, Azure, and GCP container registries.',
+  'Container posture assessments help enforce CIS benchmarks and security policies.',
+  'Software bill of materials (SBOM) is available for scanned containers and images.',
 ]
 
 export default function Chat() {
