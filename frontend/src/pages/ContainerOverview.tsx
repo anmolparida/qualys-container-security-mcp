@@ -1,4 +1,4 @@
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { useDashboard } from '../hooks/useDashboard'
 import StatCard from '../components/StatCard'
 import SeverityBadge from '../components/SeverityBadge'
@@ -17,13 +17,21 @@ const SEV_COLORS: Record<string, string> = {
   NONE: '#64748b',
 }
 
+const SEV_TEXT_COLORS: Record<string, string> = {
+  CRITICAL: '#b91c1c',
+  HIGH: '#c2410c',
+  MEDIUM: '#a16207',
+  LOW: '#1d4ed8',
+  NONE: '#475569',
+}
+
 export default function ContainerOverview() {
   const { data, state, error, refresh } = useDashboard<ContainerOverviewType>('containers/overview')
   const { dark } = useTheme()
 
-  if (state === 'loading') return <DashboardSkeleton statCount={4} />
+  if (state === 'loading' || state === 'idle') return <DashboardSkeleton statCount={4} />
   if (state === 'error') return <div className="text-red-400 p-6">Error: {error}</div>
-  if (!data) return null
+  if (!data) return <DashboardSkeleton statCount={4} />
 
   const pieData = Object.entries(data.severity_breakdown)
     .filter(([, v]) => (v as number) > 0)
@@ -55,24 +63,72 @@ export default function ContainerOverview() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <ChartExport title="Vulnerability Severity Breakdown" filename="container-severity.svg">
           {pieData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, value }) => `${name}: ${value}`}>
-                  {pieData.map((entry) => (
-                    <Cell key={entry.name} fill={SEV_COLORS[entry.name] ?? '#64748b'} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={tooltipStyle} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="flex items-center gap-6">
+              <div className="relative flex-shrink-0" style={{ width: 180, height: 180 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%" cy="50%"
+                      innerRadius={55}
+                      outerRadius={80}
+                      paddingAngle={3}
+                      strokeWidth={0}
+                    >
+                      {pieData.map((entry) => (
+                        <Cell key={entry.name} fill={SEV_COLORS[entry.name] ?? '#64748b'} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      formatter={(value: number, name: string) => [value.toLocaleString(), name]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-2xl font-bold">{pieData.reduce((s, d) => s + d.value, 0).toLocaleString()}</span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>total vulns</span>
+                </div>
+              </div>
+              <div className="flex flex-col gap-3 flex-1 min-w-0">
+                {(() => {
+                  const total = Math.max(pieData.reduce((s, d) => s + d.value, 0), 1)
+                  return pieData.map((entry) => {
+                    const pct = Math.round((entry.value / total) * 100)
+                    return (
+                      <div key={entry.name}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: SEV_COLORS[entry.name] ?? '#64748b' }} />
+                            <span className="text-xs font-bold" style={{ color: SEV_TEXT_COLORS[entry.name] ?? '#475569' }}>{entry.name}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>{entry.value.toLocaleString()}</span>
+                            <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{pct}%</span>
+                          </div>
+                        </div>
+                        <div className="w-full rounded-full h-1.5" style={{ background: 'var(--border)' }}>
+                          <div className="h-1.5 rounded-full transition-all duration-500" style={{
+                            width: `${pct}%`,
+                            background: SEV_COLORS[entry.name] ?? '#64748b',
+                            minWidth: entry.value > 0 ? 4 : 0,
+                          }} />
+                        </div>
+                      </div>
+                    )
+                  })
+                })()}
+              </div>
+            </div>
           ) : (
             <EmptyState icon={Container} title="No container vulnerability data" />
           )}
         </ChartExport>
 
         <div className="rounded-xl p-5 border" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
-          <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-secondary)' }}>Top Risky Containers</h3>
+          <h3 className="text-sm font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Top Risky Containers</h3>
           {data.top_risky_containers.length === 0 ? (
             <EmptyState icon={Container} title="No risky containers" />
           ) : (
@@ -80,8 +136,8 @@ export default function ContainerOverview() {
               {data.top_risky_containers.map((c: any, i: number) => (
                 <div key={i} className="flex items-center justify-between text-sm border-b pb-2" style={{ borderColor: 'var(--border)' }}>
                   <div>
-                    <p className="font-medium truncate max-w-[180px]" style={{ color: 'var(--text-primary)' }}>{c.name}</p>
-                    <p className="text-xs text-slate-500">{c.state}</p>
+                    <p className="font-bold truncate max-w-[180px]" style={{ color: 'var(--text-primary)' }}>{c.name}</p>
+                    <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>{c.state}</p>
                   </div>
                   <div className="flex gap-1">
                     {c.critical > 0 && <SeverityBadge severity="CRITICAL" count={c.critical} />}

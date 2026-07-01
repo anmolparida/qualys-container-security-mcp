@@ -16,7 +16,7 @@ export default function StatCard({ label, value, sub, color = 'text-white', icon
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>{label}</p>
-          <p className={`text-3xl font-bold ${color}`}>{value}</p>
+          <p className={`text-3xl font-bold ${color}`}>{value ?? '—'}</p>
           {sub && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{sub}</p>}
         </div>
         {Icon && (

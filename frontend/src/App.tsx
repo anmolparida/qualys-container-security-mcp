@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Container, ImageIcon, Database, Network, Zap, Sun, Moon, ExternalLink } from 'lucide-react'
+import { Container, ImageIcon, Database, Network, Zap, Sun, Moon, ExternalLink, Info, X } from 'lucide-react'
 import ContainerOverview from './pages/ContainerOverview'
 import ImageVulnerabilities from './pages/ImageVulnerabilities'
 import RegistryHealth from './pages/RegistryHealth'
@@ -11,7 +11,7 @@ type Tab = 'containers' | 'images' | 'registry' | 'k8s' | 'chat'
 
 const NAV = [
   { id: 'containers' as Tab, label: 'Containers', icon: Container },
-  { id: 'images' as Tab, label: 'Image Vulns', icon: ImageIcon },
+  { id: 'images' as Tab, label: 'Images', icon: ImageIcon },
   { id: 'registry' as Tab, label: 'Registry Health', icon: Database },
   { id: 'k8s' as Tab, label: 'K8s Posture', icon: Network },
   { id: 'chat' as Tab, label: 'Sheldon', icon: Zap },
@@ -21,6 +21,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('chat')
   const { dark, toggle } = useTheme()
   const active = NAV.find(n => n.id === tab)
+  const [showInfo, setShowInfo] = useState(false)
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-base)' }}>
@@ -106,10 +107,63 @@ export default function App() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
-            <span className="w-2 h-2 rounded-full bg-green-500" />
-            Live
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+              <span className="w-2 h-2 rounded-full bg-green-500" />
+              Live
+            </div>
+            <button
+              onClick={() => setShowInfo(true)}
+              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[var(--bg-secondary-alpha)] transition-all"
+              style={{ color: 'var(--text-muted)' }}
+              title="About Sheldon"
+            >
+              <Info size={16} />
+            </button>
           </div>
+
+          {showInfo && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setShowInfo(false)}>
+              <div className="relative w-full max-w-md mx-4 rounded-2xl p-6 shadow-2xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
+                <button onClick={() => setShowInfo(false)} className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-full hover:bg-[var(--bg-secondary-alpha)] transition-all" style={{ color: 'var(--text-muted)' }}>
+                  <X size={16} />
+                </button>
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-900/30">
+                    <Zap size={18} className="text-white" fill="white" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold">Sheldon</h2>
+                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>AI Security Intelligence Platform</p>
+                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Kubernetes &amp; Container Security</p>
+                  </div>
+                </div>
+                <div className="space-y-3 text-sm">
+                  {[
+                    { label: 'LLM', value: 'Claude 3 Haiku via Amazon Bedrock' },
+                    { label: 'Protocol', value: 'Model Context Protocol (MCP)' },
+                    { label: 'Backend', value: 'FastAPI + async Python' },
+                    { label: 'Frontend', value: 'React + Tailwind CSS' },
+                    { label: 'Data source', value: 'Qualys Container Security API' },
+                    { label: 'Tool registry', value: 'Shared MCP tool definitions (30+ tools)' },
+                    { label: 'Concurrency', value: 'asyncio.gather — parallel tool calls' },
+                    { label: 'Data privacy', value: 'All data stays in your AWS VPC' },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex justify-between gap-4 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
+                      <span className="font-medium flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{label}</span>
+                      <span className="text-right" style={{ color: 'var(--text-secondary)' }}>{value}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 pt-3 border-t text-sm text-center" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+                  <p>Developed by</p>
+                  <p className="font-bold mt-0.5" style={{ color: 'var(--text-primary)' }}>Anmol Parida</p>
+                  <p className="mt-0.5">Lead Subject Matter Expert</p>
+                  <p>Container Security &amp; TotalAI</p>
+                </div>
+              </div>
+            </div>
+          )}
         </header>
         <div className="flex-1 overflow-y-auto p-6">
           {tab === 'containers' && <ContainerOverview />}

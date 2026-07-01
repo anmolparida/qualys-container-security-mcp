@@ -1,9 +1,9 @@
 const styles: Record<string, string> = {
-  CRITICAL: 'bg-red-500/15 text-red-400 border-red-500/30',
-  HIGH: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
-  MEDIUM: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
-  LOW: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  NONE: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
+  CRITICAL: 'bg-red-500/20 text-red-700 border-red-500/40',
+  HIGH: 'bg-orange-500/20 text-orange-700 border-orange-500/40',
+  MEDIUM: 'bg-yellow-500/20 text-yellow-700 border-yellow-500/40',
+  LOW: 'bg-blue-500/20 text-blue-700 border-blue-500/40',
+  NONE: 'bg-slate-500/20 text-slate-600 border-slate-500/40',
 }
 
 export default function SeverityBadge({ severity, count }: { severity: string; count: number }) {

@@ -8,17 +8,17 @@ import type { RegistryHealth as RegistryHealthType } from '../types/api'
 
 function StatusIcon({ status }: { status: string }) {
   const s = (status ?? '').toUpperCase()
-  if (s === 'SUCCESS' || s === 'ACTIVE' || s === 'COMPLETED') return <CheckCircle size={16} className="text-green-400" />
-  if (s === 'FAILED' || s === 'ERROR') return <XCircle size={16} className="text-red-400" />
-  return <Clock size={16} className="text-yellow-400" />
+  if (s === 'SUCCESS' || s === 'ACTIVE' || s === 'COMPLETED') return <CheckCircle size={16} className="text-green-600" />
+  if (s === 'FAILED' || s === 'ERROR') return <XCircle size={16} className="text-red-600" />
+  return <Clock size={16} className="text-yellow-600" />
 }
 
 export default function RegistryHealth() {
   const { data, state, error, refresh } = useDashboard<RegistryHealthType>('registry/health')
 
-  if (state === 'loading') return <DashboardSkeleton statCount={3} />
+  if (state === 'loading' || state === 'idle') return <DashboardSkeleton statCount={3} />
   if (state === 'error') return <div className="text-red-400 p-6">Error: {error}</div>
-  if (!data) return null
+  if (!data) return <DashboardSkeleton statCount={3} />
 
   const healthy = data.registries.filter((r: any) => ['SUCCESS', 'ACTIVE', 'COMPLETED'].includes((r.state ?? '').toUpperCase())).length
 
@@ -32,7 +32,7 @@ export default function RegistryHealth() {
       render: (r: any) => (
         <div className="flex items-center gap-2">
           <StatusIcon status={r.state ?? ''} />
-          <span style={{ color: 'var(--text-secondary)' }}>{r.state ?? 'Unknown'}</span>
+          <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{r.state ?? 'Unknown'}</span>
         </div>
       ),
     },

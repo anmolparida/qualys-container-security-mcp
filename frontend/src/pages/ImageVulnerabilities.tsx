@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { useDashboard } from '../hooks/useDashboard'
 import StatCard from '../components/StatCard'
 import SeverityBadge from '../components/SeverityBadge'
@@ -9,29 +9,36 @@ import { RefreshCw, Image, AlertTriangle, Flame, ShieldAlert } from 'lucide-reac
 import { useTheme } from '../context/ThemeContext'
 import type { ImageVulnerabilities as ImageVulnerabilitiesType } from '../types/api'
 
+const SEV_COLORS: Record<string, string> = {
+  CRITICAL: '#ef4444',
+  HIGH: '#f97316',
+  MEDIUM: '#eab308',
+  LOW: '#3b82f6',
+}
+
+const SEV_TEXT_COLORS: Record<string, string> = {
+  CRITICAL: '#b91c1c',
+  HIGH: '#c2410c',
+  MEDIUM: '#a16207',
+  LOW: '#1d4ed8',
+}
+
 export default function ImageVulnerabilities() {
   const { data, state, error, refresh } = useDashboard<ImageVulnerabilitiesType>('images/vulnerabilities')
   const { dark } = useTheme()
 
-  if (state === 'loading') return <DashboardSkeleton statCount={4} />
+  if (state === 'loading' || state === 'idle') return <DashboardSkeleton statCount={4} />
   if (state === 'error') return <div className="text-red-400 p-6">Error: {error}</div>
-  if (!data) return null
+  if (!data) return <DashboardSkeleton statCount={4} />
 
   const { severity_totals, top_vulnerable_images, total_images } = data
 
-  const SEV_COLORS: Record<string, string> = {
-    Critical: '#ef4444',
-    High: '#f97316',
-    Medium: '#eab308',
-    Low: '#3b82f6',
-  }
-
-  const barData = [
-    { name: 'Critical', value: severity_totals.critical, fill: SEV_COLORS.Critical },
-    { name: 'High', value: severity_totals.high, fill: SEV_COLORS.High },
-    { name: 'Medium', value: severity_totals.medium, fill: SEV_COLORS.Medium },
-    { name: 'Low', value: severity_totals.low, fill: SEV_COLORS.Low },
-  ]
+  const pieData = [
+    { name: 'CRITICAL', value: severity_totals.critical },
+    { name: 'HIGH',     value: severity_totals.high },
+    { name: 'MEDIUM',   value: severity_totals.medium },
+    { name: 'LOW',      value: severity_totals.low },
+  ].filter(d => d.value > 0)
 
   const tooltipStyle = {
     background: dark ? '#16213e' : '#ffffff',
@@ -39,8 +46,6 @@ export default function ImageVulnerabilities() {
     borderRadius: 8,
     color: dark ? '#e2e8f0' : '#0f172a',
   }
-
-  const tickColor = dark ? '#94a3b8' : '#64748b'
 
   return (
     <div className="space-y-6">
@@ -59,21 +64,63 @@ export default function ImageVulnerabilities() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <ChartExport title="Severity Distribution" filename="image-severity.svg">
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={barData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-              <XAxis dataKey="name" tick={{ fill: tickColor, fontSize: 12 }} />
-              <YAxis tick={{ fill: tickColor, fontSize: 12 }} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                {barData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+        <ChartExport title="Vulnerability Severity Breakdown" filename="image-severity.svg">
+          {pieData.length > 0 ? (
+            <div className="flex items-center gap-6">
+              <div className="relative flex-shrink-0" style={{ width: 180, height: 180 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%"
+                      innerRadius={55} outerRadius={80} paddingAngle={3} strokeWidth={0}>
+                      {pieData.map((entry) => (
+                        <Cell key={entry.name} fill={SEV_COLORS[entry.name] ?? '#64748b'} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={tooltipStyle} formatter={(value: number, name: string) => [value.toLocaleString(), name]} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-2xl font-bold">{pieData.reduce((s, d) => s + d.value, 0).toLocaleString()}</span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>total vulns</span>
+                </div>
+              </div>
+              <div className="flex flex-col gap-3 flex-1 min-w-0">
+                {(() => {
+                  const total = Math.max(pieData.reduce((s, d) => s + d.value, 0), 1)
+                  return pieData.map((entry) => {
+                    const pct = Math.round((entry.value / total) * 100)
+                    return (
+                      <div key={entry.name}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: SEV_COLORS[entry.name] ?? '#64748b' }} />
+                            <span className="text-xs font-bold" style={{ color: SEV_TEXT_COLORS[entry.name] ?? '#475569' }}>{entry.name}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>{entry.value.toLocaleString()}</span>
+                            <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{pct}%</span>
+                          </div>
+                        </div>
+                        <div className="w-full rounded-full h-1.5" style={{ background: 'var(--border)' }}>
+                          <div className="h-1.5 rounded-full transition-all duration-500" style={{
+                            width: `${pct}%`,
+                            background: SEV_COLORS[entry.name] ?? '#64748b',
+                            minWidth: entry.value > 0 ? 4 : 0,
+                          }} />
+                        </div>
+                      </div>
+                    )
+                  })
+                })()}
+              </div>
+            </div>
+          ) : (
+            <EmptyState icon={Image} title="No image vulnerability data" />
+          )}
         </ChartExport>
 
         <div className="rounded-xl p-5 border" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
-          <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-secondary)' }}>Top Vulnerable Images</h3>
+          <h3 className="text-sm font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Top Vulnerable Images</h3>
           {top_vulnerable_images.length === 0 ? (
             <EmptyState icon={Image} title="No vulnerable images" />
           ) : (
@@ -81,8 +128,8 @@ export default function ImageVulnerabilities() {
               {top_vulnerable_images.map((img: any, i: number) => (
                 <div key={i} className="flex items-center justify-between text-sm border-b pb-2" style={{ borderColor: 'var(--border)' }}>
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>{img.name || img.sha?.slice(0, 12)}</p>
-                    <p className="text-xs text-slate-500">{img.tag}</p>
+                    <p className="font-bold truncate" style={{ color: 'var(--text-primary)' }}>{img.name || img.sha?.slice(0, 12)}</p>
+                    <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>{img.tag}</p>
                   </div>
                   <div className="flex gap-1 ml-2 flex-shrink-0">
                     {img.critical > 0 && <SeverityBadge severity="CRITICAL" count={img.critical} />}

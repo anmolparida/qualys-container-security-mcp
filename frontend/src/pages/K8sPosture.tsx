@@ -9,9 +9,9 @@ import type { K8sPosture as K8sPostureType } from '../types/api'
 export default function K8sPosture() {
   const { data, state, error, refresh } = useDashboard<K8sPostureType>('k8s/posture')
 
-  if (state === 'loading') return <DashboardSkeleton statCount={4} />
+  if (state === 'loading' || state === 'idle') return <DashboardSkeleton statCount={4} />
   if (state === 'error') return <div className="text-red-400 p-6">Error: {error}</div>
-  if (!data) return null
+  if (!data) return <DashboardSkeleton statCount={4} />
 
   const posture = data.posture_summary ?? {}
   const passed = posture.passed ?? posture.PASS ?? 0
@@ -27,8 +27,8 @@ export default function K8sPosture() {
         <div className="flex items-center gap-3">
           <Server size={16} className="text-blue-400 flex-shrink-0" />
           <div>
-            <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>{c.name ?? c.uid}</p>
-            <p className="text-xs text-slate-500">v{c.version} · {c.node_count} nodes</p>
+            <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{c.name ?? c.uid}</p>
+            <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>v{c.version} · {c.node_count} nodes</p>
           </div>
         </div>
       ),
@@ -40,8 +40,8 @@ export default function K8sPosture() {
       render: (c: any) => (
         <span className={`text-xs font-semibold px-2 py-1 rounded ${
           (c.sensor_status ?? '').toUpperCase() === 'ACTIVE'
-            ? 'bg-green-500/20 text-green-400'
-            : 'bg-slate-600/40 text-slate-400'
+            ? 'bg-green-500/20 text-green-700'
+            : 'bg-slate-600/40 text-slate-600'
         }`}>
           {c.sensor_status ?? 'Unknown'}
         </span>
@@ -67,7 +67,7 @@ export default function K8sPosture() {
 
       {total > 0 && (
         <div className="rounded-xl p-5 border" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
-          <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>Posture Pass Rate</h3>
+          <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--text-primary)' }}>Posture Pass Rate</h3>
           <div className="flex items-center gap-3">
             <div className="flex-1 rounded-full h-4 overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
               <div
@@ -75,7 +75,7 @@ export default function K8sPosture() {
                 style={{ width: `${total > 0 ? Math.round((passed / total) * 100) : 0}%` }}
               />
             </div>
-            <span className="text-green-400 font-bold text-sm w-12 text-right">
+            <span className="text-green-700 font-bold text-sm w-12 text-right">
               {total > 0 ? Math.round((passed / total) * 100) : 0}%
             </span>
           </div>

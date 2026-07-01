@@ -280,7 +280,7 @@ export default function Chat() {
                         </span>
                         <span>
                           <span className="text-orange-600">Did you know?</span>{' '}
-                          <span>{m.fact}</span>
+                          <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{m.fact}</span>
                         </span>
                       </div>
                     </div>

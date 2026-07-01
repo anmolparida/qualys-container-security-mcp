@@ -23,7 +23,7 @@ export function useDashboard<T = any>(key: DashboardEndpoint) {
     if (state === 'idle') {
       load()
     }
-  }, [key])
+  }, [key, state])
 
   return { data, state, error, refresh: load }
 }

@@ -90,7 +90,7 @@ export default function DataTable<T extends Record<string, any>>({
     <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
       {(title || data.length > 0) && (
         <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary-alpha)' }}>
-          {title && <h3 className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>{title}</h3>}
+          {title && <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{title}</h3>}
           <div className="flex items-center gap-2 ml-auto">
             <div className="relative">
               <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
@@ -123,7 +123,7 @@ export default function DataTable<T extends Record<string, any>>({
                   key={col.key}
                   onClick={() => col.sortable !== false && handleSort(col.key)}
                   className={`text-left px-4 py-3 font-semibold ${col.sortable !== false ? 'cursor-pointer hover:opacity-80' : ''}`}
-                  style={{ color: 'var(--text-muted)' }}
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   <div className="flex items-center gap-1">
                     {col.header}
@@ -147,7 +147,7 @@ export default function DataTable<T extends Record<string, any>>({
               <tr key={i} className="border-b transition-colors hover:opacity-80" style={{ borderColor: 'var(--border)' }}>
                 {columns.map(col => (
                   <td key={col.key} className="px-4 py-3">
-                    {col.render ? col.render(row) : String(row[col.key] ?? '—')}
+                    {col.render ? col.render(row) : <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{String(row[col.key] ?? '—')}</span>}
                   </td>
                 ))}
               </tr>

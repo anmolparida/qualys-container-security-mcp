@@ -1,24 +1,35 @@
+import logging
 from fastapi import APIRouter
 from qualys_client import get
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
+logger = logging.getLogger("dashboard")
 
 
-def _vuln_counts(vuln: dict) -> dict:
-    """Normalise Qualys vulnerability dict (severityNCount or critical/high keys)."""
+def _int(v) -> int:
+    try:
+        return int(v or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _vuln_counts(vuln) -> dict:
+    """Normalise Qualys vulnerability dict — always returns ints, never None."""
+    if not isinstance(vuln, dict):
+        return {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "NONE": 0}
     if "severity5Count" in vuln:
         return {
-            "CRITICAL": vuln.get("severity5Count", 0),
-            "HIGH":     vuln.get("severity4Count", 0),
-            "MEDIUM":   vuln.get("severity3Count", 0),
-            "LOW":      vuln.get("severity2Count", 0),
-            "NONE":     vuln.get("severity1Count", 0),
+            "CRITICAL": _int(vuln.get("severity5Count")),
+            "HIGH":     _int(vuln.get("severity4Count")),
+            "MEDIUM":   _int(vuln.get("severity3Count")),
+            "LOW":      _int(vuln.get("severity2Count")),
+            "NONE":     _int(vuln.get("severity1Count")),
         }
     return {
-        "CRITICAL": vuln.get("critical", 0),
-        "HIGH":     vuln.get("high", 0),
-        "MEDIUM":   vuln.get("medium", 0),
-        "LOW":      vuln.get("low", 0),
+        "CRITICAL": _int(vuln.get("critical") or vuln.get("CRITICAL")),
+        "HIGH":     _int(vuln.get("high") or vuln.get("HIGH")),
+        "MEDIUM":   _int(vuln.get("medium") or vuln.get("MEDIUM")),
+        "LOW":      _int(vuln.get("low") or vuln.get("LOW")),
         "NONE":     0,
     }
 
@@ -27,7 +38,9 @@ def _vuln_counts(vuln: dict) -> dict:
 async def container_overview():
     """Aggregate container stats: total, vuln severity breakdown, top risky containers."""
     data = get("/containers", {"pageSize": 100})
+    logger.info(f"containers/overview raw keys: {list(data.keys()) if isinstance(data, dict) else type(data)}")
     containers = data.get("data", data.get("list", []))
+    total_count = data.get("count", data.get("totalCount", data.get("total", len(containers))))
 
     severity_counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "NONE": 0}
     running = 0
@@ -54,7 +67,7 @@ async def container_overview():
     )[:10]
 
     return {
-        "total": len(containers),
+        "total": total_count,
         "running": running,
         "stopped": stopped,
         "severity_breakdown": severity_counts,
@@ -76,7 +89,9 @@ async def image_vulnerabilities():
     """Aggregate image vulnerability stats: severity totals, top vulnerable images."""
     data = get("/images", {"pageSize": 100})
     images = data.get("data", data.get("list", []))
-
+    total_images = data.get("count", data.get("totalCount", data.get("total", len(images))))
+    if images:
+        logger.info(f"images sample vuln field: {images[0].get('vulnerabilities')}")
     severity_totals = {"critical": 0, "high": 0, "medium": 0, "low": 0}
 
     for img in images:
@@ -96,7 +111,7 @@ async def image_vulnerabilities():
     )[:10]
 
     return {
-        "total_images": len(images),
+        "total_images": total_images,
         "severity_totals": severity_totals,
         "top_vulnerable_images": [
             {
