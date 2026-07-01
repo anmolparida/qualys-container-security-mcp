@@ -62,6 +62,7 @@ export default function App() {
             { label: 'CS API Docs', href: 'https://docs.qualys.com/en/cs/api/' },
             { label: 'CS User Guide', href: 'https://docs.qualys.com/en/cs/' },
             { label: 'QScanner Commands', href: 'https://docs.qualys.com/en/qscanner/latest/qscanner_usage/qscanner_commands.htm' },
+            { label: 'Release Notes', href: 'https://www.qualys.com/documentation/release-notes' },
           ].map(({ label, href }) => (
             <a
               key={href}

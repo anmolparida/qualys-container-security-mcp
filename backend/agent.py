@@ -88,11 +88,12 @@ FORMATTING RULES:
   {"type": "pie", "title": "Vulnerability Severity", "data": [{"name": "Critical", "value": 5}, {"name": "High", "value": 12}]}
   ```
 - Always include a link to https://artifacthub.io/packages/helm/qualys-helm-chart/qualys-tc when answering sensor installation questions.
-- Documentation: Qualys CS (https://docs.qualys.com/en/cs/latest/get_started/cs_docs.htm), CS API (https://docs.qualys.com/en/cs/api/), CS User Guide (https://docs.qualys.com/en/cs/)
+- Documentation: Qualys CS (https://docs.qualys.com/en/cs/latest/get_started/cs_docs.htm), CS API (https://docs.qualys.com/en/cs/api/), CS User Guide (https://docs.qualys.com/en/cs/), Release Notes (https://www.qualys.com/documentation/release-notes)
 
 NON-API QUESTIONS:
 For questions about installation, configuration, deployment, or anything not answered by the API tools, use the fetch_docs tool to retrieve content from the relevant Qualys documentation page before answering. Always cite the source URL in your response.
-If the question is about other Qualys products outside Container Security (e.g. VMDR, WAS, EDR, CSAM, Policy Compliance, etc.), use fetch_docs with https://www.qualys.com/ to find the relevant product information and direct the user there."""
+When answering questions about release notes or new features, always fetch https://www.qualys.com/documentation/release-notes and reference only the Container Security section — do not mention other Qualys products.
+If the question is clearly outside Container Security scope entirely, politely redirect the user to https://www.qualys.com/ for other products."""
 
 
 def _make_client() -> anthropic.AnthropicBedrock:
