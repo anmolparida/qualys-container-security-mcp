@@ -131,10 +131,6 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
     <h2 style="font-size:20px;margin-bottom:14px">POC calls stall. Email chains grow. Answers already exist.</h2>
     <div class="two-col" style="align-items:start">
       <div style="display:flex;flex-direction:column;gap:8px;align-self:start">
-        <div class="card" style="border-left:3px solid var(--red);padding:12px 14px">
-          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">&#128172; Eliminate Demo Friction</div>
-          <p style="font-size:11px">Instead of pausing to search for answers, Sheldon provides immediate, environment-specific responses, keeping conversations focused and moving toward a successful outcome.</p>
-        </div>
         <div class="card" style="border-left:3px solid var(--orange);padding:12px 14px">
           <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">📄 Questions answered in docs — but no one finds them</div>
           <p style="font-size:11px">Qualys documentation is comprehensive but scattered. Customers ask SMEs questions that are already documented — they just can't navigate to them.</p>
@@ -146,6 +142,10 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
         <div class="card" style="border-left:3px solid var(--blue);padding:12px 14px">
           <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">📧 Email chains run for weeks on basic questions</div>
           <p style="font-size:11px">Simple deployment and scanning questions spiral into multi-week back-and-forth because answers are documented but customers don't look into it.</p>
+        </div>
+        <div class="card" style="border-left:3px solid var(--red);padding:12px 14px">
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">&#128172; Eliminate Demo Friction</div>
+          <p style="font-size:11px">Instead of pausing to search for answers, Sheldon provides immediate, environment-specific responses, keeping conversations focused and moving toward a successful outcome.</p>
         </div>
       </div>
       <div class="card" style="align-self:start">
@@ -209,26 +209,27 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
     <h2 style="font-size:20px;margin-bottom:10px">Live data. No RAG. No stale index.</h2>
     <div class="two-col" style="align-items:start">
       <div style="align-self:start;padding-top:28px">
-        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:0">
+        <div style="display:flex;flex-direction:column;gap:6px">
           <div style="display:flex;align-items:center;gap:8px">
-            <div class="abox" style="flex:1"><div class="al">React UI</div><div class="as">Vite · Tailwind · Inter</div></div>
+            <div class="abox" style="flex:1;border-color:rgba(34,197,94,.4)"><div class="al" style="color:#4ade80">&#128100; User</div><div class="as">Web Chat · React + Vite</div></div>
             <div class="aarr">→</div>
             <div class="abox" style="flex:1"><div class="al">FastAPI</div><div class="as">Async Python · Uvicorn</div></div>
           </div>
           <div style="text-align:center;color:var(--muted);font-size:13px;line-height:1">↓</div>
           <div style="display:flex;align-items:center;gap:8px">
-            <div class="abox" style="flex:1;border-color:rgba(249,115,22,.4)"><div class="al" style="color:var(--orange)">Claude 3 Haiku</div><div class="as">Amazon Bedrock</div></div>
+            <div class="abox" style="flex:1;border-color:rgba(249,115,22,.4)"><div class="al" style="color:var(--orange)">Claude 3 Haiku</div><div class="as">Amazon Bedrock · tool selection</div></div>
             <div class="aarr">⇄</div>
-            <div class="abox" style="flex:1;border-color:rgba(59,130,246,.4)"><div class="al" style="color:#60a5fa">Qualys CS API</div><div class="as">Live · Real-time</div></div>
+            <div class="abox" style="flex:1;border-color:rgba(59,130,246,.4)"><div class="al" style="color:#60a5fa">Qualys CS API</div><div class="as">Live data · 40+ endpoints</div></div>
           </div>
           <div style="text-align:center;color:var(--muted);font-size:13px;line-height:1">↑</div>
-          <div class="abox" style="border-color:rgba(99,102,241,.4)"><div class="al" style="color:#a5b4fc">Shared Tool Registry</div><div class="as">40+ tools · Single source of truth for agent + MCP server</div></div>
+          <div class="abox" style="border-color:rgba(99,102,241,.4)"><div class="al" style="color:#a5b4fc">&#128279; Shared Tool Registry</div><div class="as">40+ tools · used by agent &amp; MCP server · single source of truth</div></div>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:5px;align-self:start">
-        <div class="fcard" style="padding:10px 14px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span style="font-size:15px">&#128308;</span><h3 style="font-size:12px;margin:0">No RAG / No Vector DB</h3></div><p style="font-size:11px">Every answer fetches live data from Qualys APIs.<br/>No stale index, no embedding pipeline, no hallucinated vulnerability data.</p></div>
+        <div class="fcard" style="padding:10px 14px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span style="font-size:15px">&#128308;</span><h3 style="font-size:12px;margin:0">Docs Cached at Startup — No RAG</h3></div><p style="font-size:11px">Key doc pages pre-loaded at startup. Full page context passed to the model —<br/>no chunking, no missed answers.</p></div>
         <div class="fcard" style="padding:10px 14px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span style="font-size:15px">&#9889;</span><h3 style="font-size:12px;margin:0">Parallel Async Tool Calls</h3></div><p style="font-size:11px">Multiple Qualys API calls fire simultaneously via <code>asyncio.gather</code> for fast multi-step answers.</p></div>
         <div class="fcard" style="padding:10px 14px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span style="font-size:15px">&#128274;</span><h3 style="font-size:12px;margin:0">Your AWS, Your Data</h3></div><p style="font-size:11px">Claude runs on <strong>your</strong> Amazon Bedrock account.<br/>Zero data sharing with Anthropic. Stays within your VPC.</p></div>
+        <div class="fcard" style="padding:10px 14px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span style="font-size:15px">&#128279;</span><h3 style="font-size:12px;margin:0">MCP Server Included</h3></div><p style="font-size:11px">Same tool registry exposed as an MCP server.<br/>Works with Cursor or any MCP-compatible client.</p></div>
       </div>
     </div>
   </div>

@@ -1,0 +1,100 @@
+SHELDON — PITCH DECK TALKING POINTS
+=====================================
+
+
+SLIDE 1 — COVER
+-----------------
+- Sheldon is an AI Security Intelligence assistant built specifically for Qualys
+  Kubernetes & Container Security.
+- It gives any team member — SE, CSM, or customer — natural language access to
+  their entire container environment without needing to know the API or dig
+  through docs.
+- Powered by live Qualys data via the CS API and Claude 3 Haiku running on
+  Amazon Bedrock — no data ever leaves your AWS account.
+- This is a working prototype, live demo ready today.
+
+
+SLIDE 2 — THE PROBLEM
+----------------------
+- Our POC calls stall and email chains grow — not because the answers don't
+  exist, but because they're hard to surface in the moment.
+- Four specific pain points:
+  1. Demo friction: SEs pause to search for answers mid-call, breaking momentum.
+  2. Docs exist but customers can't navigate to them — they raise tickets instead.
+  3. K8s Helm config questions block deployments for days while people hunt
+     through artifact release notes.
+  4. Simple deployment questions turn into multi-week email threads because
+     customers don't look into the documentation themselves.
+- The right column shows what happens WITHOUT Sheldon:
+  - SMEs are answering the same deployment questions repeatedly.
+  - POCs stall waiting on answers that already exist in the product.
+  - Deal velocity slows and customer momentum is lost.
+- We have 40+ API endpoints and weeks of documented answers — they just aren't
+  accessible at the right time.
+
+
+SLIDE 3 — THE SOLUTION
+-----------------------
+- Sheldon's answer: ask once, get answers instantly.
+- Walk through the flow on the left:
+  - User asks a natural language question.
+  - Sheldon identifies the right Qualys CS API tool and calls it with the
+    correct parameters.
+  - The answer comes back in seconds as a formatted table or chart.
+- No searching docs, no waiting on an SME, no ticket.
+- The right column shows the breadth of questions Sheldon handles today:
+  critical CVEs in production, vulnerability charts, Helm YAML generation,
+  EOL software, K8s posture checks, CI/CD integration guidance.
+- The key insight: every answer is grounded in live data from the customer's
+  own Qualys account.
+
+
+SLIDE 4 — TECHNICAL ARCHITECTURE
+----------------------------------
+- "Live data. No RAG. No stale index." — this is the core architectural
+  differentiator.
+- Stack: React + Vite frontend → FastAPI backend → Claude 3 Haiku on Amazon
+  Bedrock ⇄ Qualys CS API.
+- A Shared Tool Registry (40+ tools) is the single source of truth used by
+  both the chat agent and any MCP server integration.
+- Three key technical properties:
+  1. No RAG / No Vector DB: every response fetches live data directly from
+     Qualys APIs — no stale index, no embedding pipeline, no hallucinated
+     vulnerability data.
+  2. Parallel async tool calls: multiple API calls fire simultaneously via
+     asyncio.gather for fast multi-step answers.
+  3. Your AWS, your data: Claude runs on the customer's own Amazon Bedrock
+     account — zero data sharing with Anthropic, stays within their VPC.
+
+
+SLIDE 5 — CAPABILITIES
+------------------------
+- What Sheldon can do today, across seven capability areas:
+  - Vulnerabilities: critical CVE analysis across all containers and images.
+  - Secrets & Malware: detect secrets and malware embedded in image layers.
+  - SBOM: full software inventory per container or image.
+  - EOL Software: identify packages nearing end-of-life.
+  - AI Software: detect AI/ML libraries present in images.
+  - K8s Posture: surface failing security posture control checks.
+  - Charts: inline pie, bar, and line chart visualisations directly in chat.
+- All of these are backed by live API calls — not cached or pre-computed data.
+
+
+SLIDE 6 — ROADMAP
+------------------
+- Immediate priorities (before broader rollout):
+  1. Authentication — SSO or per-user API key to prevent unauthorised access
+     to Qualys data.
+  2. Rate limiting + agent turn cap — prevent runaway queries burning Bedrock
+     tokens.
+  3. Convert dashboard routes to async — remove event loop blocking on sync
+     Qualys calls.
+  4. Persistent conversation history — survive page refresh via PostgreSQL
+     or Redis.
+- Future investments:
+  1. Expand tool registry — add more Qualys CS API tools for broader coverage
+     and more precise agent responses.
+  2. Multi-tenant credential isolation — support multiple Qualys subscriptions
+     from a single deployment.
+  3. PDF / CSV export from chat — one-click report generation.
+  4. Scheduled proactive reports — daily digest of new critical findings.

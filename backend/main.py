@@ -1,3 +1,4 @@
+import asyncio
 import os
 import logging
 from dotenv import load_dotenv
@@ -18,8 +19,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.dashboard import router as dashboard_router
 from routes.chat import router as chat_router
+from agent import prewarm_docs_cache
 
 app = FastAPI(title="Qualys CS Intelligence", version="1.0.0")
+
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(prewarm_docs_cache())
 
 app.add_middleware(
     CORSMiddleware,
