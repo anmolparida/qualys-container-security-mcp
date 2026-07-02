@@ -133,9 +133,9 @@ export default function App() {
                     <Zap size={18} className="text-white" fill="white" />
                   </div>
                   <div>
-                    <h2 className="text-base font-bold">Sheldon</h2>
-                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>AI Security Intelligence Platform</p>
-                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Kubernetes &amp; Container Security</p>
+                    <h2 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>Sheldon</h2>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Intelligence Platform</p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Kubernetes &amp; Container Security</p>
                   </div>
                 </div>
                 <div className="space-y-3 text-sm">

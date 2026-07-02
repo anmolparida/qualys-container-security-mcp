@@ -109,16 +109,6 @@ function renderAssistantContent(content: string) {
   return parts.length ? parts : <SafeMarkdown content={content} />
 }
 
-const SUGGESTIONS = [
-  'Show all critical vulnerabilities across containers',
-  'Which images have the most high severity CVEs?',
-  'List running containers with vulnerability counts',
-  'What is the current K8s posture score?',
-  'Are there any secrets detected in my images?',
-  'Show registry scan status',
-  'Show a pie chart of vulnerability severity',
-  'Chart image vulnerabilities by severity',
-]
 
 const QUALYS_FACTS = [
   'Qualys CS can detect secrets and sensitive data accidentally baked into container images.',
@@ -233,28 +223,13 @@ export default function Chat() {
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 pb-4">
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center gap-8">
-            <div className="text-center space-y-3">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center mx-auto shadow-lg shadow-orange-900/30">
-                <Zap size={28} className="text-white" fill="white" />
-              </div>
-              <div>
-                <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Sheldon</p>
-                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Ask anything about your container security posture</p>
-              </div>
+          <div className="h-full flex flex-col items-center justify-center gap-4">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-xl shadow-orange-900/30">
+              <Zap size={36} className="text-white" fill="white" />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl">
-              {SUGGESTIONS.map((s, i) => (
-                <button
-                  key={i}
-                  onClick={() => send(s)}
-                  disabled={streaming}
-                  className="text-left text-sm p-3 rounded-xl border transition-all hover:border-blue-500 hover:bg-[var(--bg-secondary-alpha)] disabled:opacity-50"
-                  style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
-                >
-                  {s}
-                </button>
-              ))}
+            <div className="text-center space-y-2">
+              <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Sheldon</p>
+              <p className="text-base" style={{ color: 'var(--text-secondary)' }}>Ask me about Qualys Container Security</p>
             </div>
           </div>
         ) : (
