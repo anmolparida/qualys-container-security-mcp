@@ -1,85 +1,94 @@
 # Qualys KCS — AI Security Intelligence Platform
 
-An AI-powered Kubernetes & Container Security intelligence platform built on top of the **Qualys Container Security (CS)** API. It combines a Python MCP (Model Context Protocol) server, a FastAPI backend orchestrator, and a React + Tailwind frontend to let security teams ask natural-language questions about containers, images, vulnerabilities, registries, Kubernetes clusters, and sensors — powered by **Sheldon**, the AI assistant.
+**Sheldon** is an AI assistant for Qualys Kubernetes & Container Security. You type a question in plain English — Sheldon calls the right Qualys API, fetches live data from your environment, and returns an answer in seconds.
+
+No searching through docs. No waiting on an SME. No tickets.
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Architecture](#architecture)
+- [What Sheldon Can Do](#what-sheldon-can-do)
 - [How It Works](#how-it-works)
+- [Architecture](#architecture)
 - [Prerequisites](#prerequisites)
 - [Configuration](#configuration)
 - [Running Locally](#running-locally)
 - [Project Structure](#project-structure)
 - [API Endpoints](#api-endpoints)
-- [MCP Tools](#mcp-tools)
-- [Known Filter Tokens](#known-filter-tokens)
+- [Available Tools](#available-tools)
+- [QQL Filter Tokens](#qql-filter-tokens)
 - [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
+- [Extending the Project](#extending-the-project)
+- [Connecting to the MCP Server](#connecting-to-the-mcp-server)
 - [License](#license)
 
-## Overview
+## What Sheldon Can Do
 
-**Sheldon** is an AI assistant for Qualys Container Security. It uses a tool-calling agent pattern (not RAG) — all data is fetched live from the Qualys CS API at query time, so results are always current. It enables conversational exploration of:
+Ask Sheldon anything about your container environment:
 
-- Container and image inventories
-- Vulnerability counts and details (CVE, severity, affected components)
-- Detected secrets and malware in images
-- Software bills of materials (SBOM) for containers/images
-- Policy compliance and security posture
-- Registries and repositories
-- Kubernetes clusters, pods, namespaces, and sensors
-- Security posture dashboards and summaries
-- Inline chart visualizations (pie, bar, line) rendered from agent output
+- **Vulnerabilities** — "Show me all critical CVEs in running containers"
+- **Images** — "Which images have detected secrets or malware?"
+- **Kubernetes** — "List all pods in the prod namespace"
+- **Sensors** — "How do I deploy the Qualys sensor using Helm?"
+- **Registries** — "What registries are configured in my account?"
+- **Posture** — "Give me a summary of my current security posture"
+- **SBOM** — "What software is installed in image SHA abc123?"
+- **Charts** — Sheldon can render pie charts, bar charts, and tables inline
 
-The backend uses **Claude on Amazon Bedrock** for reasoning and tool selection. There is no vector database or embedding layer — the agent calls Qualys APIs directly via structured tools.
+All answers come from **live Qualys API data** — nothing is pre-indexed or cached from a database.
+
+## How It Works
+
+1. You type a question in the chat UI
+2. The question is sent to the FastAPI backend
+3. The backend passes it to **Claude on Amazon Bedrock** along with a list of 40+ Qualys API tools
+4. Claude reads the question, picks the right tool(s), and calls the Qualys CS API — in parallel if needed
+5. The live API results are returned to Claude, which formats them into a clear answer
+6. The answer streams back to your browser in real time
+
+> **No AI guessing.** Claude is the router — it decides which API to call. The answer always comes from your actual Qualys environment.
 
 ## Architecture
 
 ```
-┌──────────────┐      ┌──────────────┐      ┌─────────────────┐
-│   React UI   │──────▶│  FastAPI     │──────▶│  Anthropic      │
-│  (port 5173) │      │  Backend     │      │  Claude Bedrock │
-└──────────────┘      │  (port 8000) │      └────────┬────────┘
-                      └──────────────┘               │
-                             │                       │
-                             │                       │
-                             ▼                       ▼
-                      ┌──────────────┐      ┌─────────────────┐
-                      │  MCP Server  │──────▶│  Qualys CS API  │
-                      │  (stdio)     │      │                 │
-                      └──────────────┘      └─────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                        User                              │
+│              (Web Chat — React UI)                       │
+└────────────────────────┬─────────────────────────────────┘
+                         │
+                         ▼
+              ┌──────────────────────┐
+              │   FastAPI Backend    │
+              │  Async Python · 8000 │
+              └──────────┬───────────┘
+                         │
+          ┌──────────────▼──────────────┐
+          │      Claude 3 Haiku         │
+          │    (Amazon Bedrock)         │
+          │  reads question, picks tool │
+          └──────────────┬──────────────┘
+                         │ tool call
+                         ▼
+          ┌──────────────────────────────┐
+          │    Shared Tool Registry      │
+          │  40+ tools · single source   │
+          │  of truth for agent + MCP    │
+          └────────┬─────────────────────┘
+                   │                    │
+                   ▼                    ▼
+     ┌─────────────────────┐   ┌────────────────────┐
+     │   Qualys CS API     │   │    MCP Server       │
+     │  Live data · always │   │  Cursor · any MCP  │
+     │  from your account  │   │  compatible client  │
+     └─────────────────────┘   └────────────────────┘
 ```
 
-- **Frontend**: Vite + React + TypeScript + Tailwind CSS + Lucide icons + Recharts
-- **Backend**: FastAPI + Uvicorn + Anthropic Bedrock client + custom agent loop
-- **MCP Server**: Python FastMCP server that wraps the Qualys Container Security REST API
-- **Qualys API**: Uses the official Qualys Container Security API endpoints for live data
+### Key Design Decisions
 
-## How It Works
-
-When a user asks a question in the **Sheldon** chat, the following steps happen:
-
-1. **User submits a prompt** in the React frontend at `http://localhost:5173`.
-2. The frontend sends the message + conversation history to the FastAPI backend via a POST to `/api/chat/` with a streaming response.
-3. The backend starts the agent loop in `backend/agent.py`, truncating/sanitising the history to avoid Anthropic API errors (orphaned tool_results, consecutive same-role messages, empty lists).
-4. The agent calls **Claude on Amazon Bedrock** with the system prompt, tool definitions, and sanitised history.
-5. Claude decides whether it needs data. If so, it returns `tool_use` blocks.
-6. The agent executes all tool calls in parallel via `asyncio.gather` using the shared async `httpx` client in `backend/qualys_client.py`.
-7. Tool results are returned as `tool_result` blocks. Claude reasons over the data and produces a final answer.
-8. **Only the final answer is streamed to the UI** — intermediate tool-use text is suppressed.
-9. The frontend renders the streaming text, parses markdown tables into styled tables and `chart` code blocks into Recharts visualizations.
-10. Conversation history is stored in the browser session only — nothing is persisted server-side.
-
-Dashboard tabs (Containers, Images, Registry, K8s) bypass the LLM and call the Qualys API directly through the backend for faster summary views.
-
-### Agent Architecture Notes
-
-- **No RAG / no vector DB** — all data is fetched live from Qualys APIs
-- **Shared tool registry** (`shared/tool_registry.py`) — single source of truth for tool definitions used by both the agent and the MCP server
-- **Async tool calls** — agent calls are fully async; dashboard routes use sync calls (blocking, acceptable for low-concurrency use)
-- **No max concurrency cap** on parallel tool calls — Qualys API rate limits apply
-- **No max turn limit** — Claude self-limits but a runaway query could loop; monitor `backend.log`
+- **No RAG, no vector database** — Claude calls the Qualys API directly. Data is always live and current.
+- **Shared Tool Registry** (`shared/tool_registry.py`) — one place where all 40+ tools are defined. Both the web chat agent and the MCP server read from it. Add a tool once, it works everywhere.
+- **MCP Server** (`mcp_server/server.py`) — exposes the same Qualys tools over the Model Context Protocol so developers can use them inside Cursor or any MCP-compatible IDE.
+- **Parallel API calls** — when a question needs multiple API calls, they fire simultaneously for speed.
+- **Your AWS, your data** — Claude runs on your own Amazon Bedrock account. No data is sent to third-party AI services.
 
 ## Prerequisites
 
@@ -234,9 +243,9 @@ qualys-container-security-mcp/
 
 The `/chat` endpoint accepts JSON with a `message` field and returns a Server-Sent Events (SSE) stream of response tokens from the LLM agent.
 
-## MCP Tools
+## Available Tools
 
-The `mcp_server/server.py` exposes the following tool categories to the LLM:
+All tools are defined in `shared/tool_registry.py` and are automatically available in both the web chat and the MCP server.
 
 ### Containers
 - `list_containers` — list containers with filtering/sorting
@@ -311,9 +320,11 @@ tail -f backend.log frontend.log
 
 The backend CORS middleware allows `http://localhost:5173` and `http://localhost:3000`. If you run the frontend on a different port, update `backend/main.py` `allow_origins` accordingly.
 
-## Known Filter Tokens
+## QQL Filter Tokens
 
-These Qualys CS search token filter strings are used by the agent when querying the API. Reference: https://docs.qualys.com/en/cs/latest/search_tips/search_tokens.htm
+When Sheldon queries the Qualys API with filters, it uses these QQL (Qualys Query Language) tokens. You can also use them directly in questions like *"show me images where container.image.hasSecrets:true"*.
+
+Full reference: https://docs.qualys.com/en/cs/latest/search_tips/search_tokens.htm
 
 | Query | Filter Token |
 |---|---|
@@ -324,14 +335,45 @@ These Qualys CS search token filter strings are used by the agent when querying 
 | Images with AI software | `container.image.hasAiSoftware:true` |
 | Critical vulnerabilities | `vulnerability.severity:CRITICAL` |
 
-## Contributing
+## Extending the Project
 
-If you want to extend this project:
+The project is designed to be easy to extend:
 
-1. Add new tools to `shared/tool_registry.py` — they are automatically picked up by both the agent and the MCP server
-2. Update the system prompt in `backend/agent.py` if the new tools need workflow guidance
-3. Add new frontend pages or components under `frontend/src/pages/` and `frontend/src/components/`
-4. Keep `.env` out of commits — the `.gitignore` already handles this
+1. **Add a new Qualys API tool** — add it to `shared/tool_registry.py`. It is automatically available in the web chat agent AND the MCP server. No other changes needed.
+2. **Add workflow guidance** — if the new tool needs special instructions (e.g. when to use it, how to combine it), update the system prompt in `backend/agent.py`.
+3. **Add a new UI page** — add it under `frontend/src/pages/` and register it in `App.tsx`.
+4. **Keep secrets safe** — `.env` is in `.gitignore` and will never be committed.
+
+## Connecting to the MCP Server
+
+The MCP server uses `stdio` transport. Any MCP-compatible client (Cursor, etc.) connects by running the server as a local process.
+
+### Cursor
+
+Add this to your Cursor MCP config at `~/.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "qualys-cs": {
+      "command": "python",
+      "args": ["/path/to/qualys-container-security-mcp/mcp_server/server.py"]
+    }
+  }
+}
+```
+
+Replace `/path/to/` with the actual path to your project root. The server calls `dotenv.load_dotenv()` on startup, so it will automatically pick up credentials from the `.env` file in the project root — no need to duplicate them in the config.
+
+### Verifying the connection
+
+Once connected, your MCP client should list `qualys-cs` as an available server with all 40+ Qualys tools. You can then ask questions like:
+
+- *"List my running containers"*
+- *"Show me images with critical vulnerabilities"*
+- *"Which images have detected secrets?"*
+
+The MCP server calls the same Qualys CS API as the web chat — live data, same tools, no extra setup.
 
 ## License
 
