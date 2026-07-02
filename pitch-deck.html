@@ -19,13 +19,13 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 .slide.active{display:flex;opacity:1}
 
 /* NAV */
-.nav{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;z-index:100;background:rgba(30,41,59,.9);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:999px;padding:8px 18px}
-.nav button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 10px;border-radius:6px;transition:all .2s;font-family:inherit}
+.nav{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;z-index:100;background:rgba(30,41,59,.9);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:999px;padding:5px 12px}
+.nav button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:2px 7px;border-radius:6px;transition:all .2s;font-family:inherit}
 .nav button:hover{color:var(--text);background:var(--border)}
-.counter{font-size:12px;color:var(--muted);min-width:54px;text-align:center}
-.dots{display:flex;gap:5px;align-items:center}
-.dot{width:6px;height:6px;border-radius:50%;background:var(--border);cursor:pointer;transition:all .25s}
-.dot.active{background:var(--orange);transform:scale(1.5)}
+.counter{font-size:10px;color:var(--muted);min-width:36px;text-align:center}
+.dots{display:flex;gap:4px;align-items:center}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--border);cursor:pointer;transition:all .25s}
+.dot.active{background:var(--orange);transform:scale(1.4)}
 
 /* LOGO */
 .logo-bar{position:fixed;top:22px;left:28px;display:flex;align-items:center;gap:10px;z-index:100}
@@ -82,7 +82,7 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
 
 /* COVER BG */
 .slide-cover{background:radial-gradient(ellipse at 65% 35%,rgba(249,115,22,.13) 0%,transparent 60%),var(--dark)}
-.grad-text{background:linear-gradient(135deg,#f97316,#facc15);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.grad-text{background:linear-gradient(135deg,#f97316,#facc15);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 
 /* ARCH */
 .abox{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;text-align:center}
@@ -104,7 +104,7 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
 
 <div class="logo-bar">
   <div class="logo-icon">⚡</div>
-  <div><div class="logo-text">Qualys KCS</div><div class="logo-sub">AI Intelligence Platform</div></div>
+  <div><div class="logo-text">Sheldon</div><div class="logo-sub">Qualys KCS AI Intelligence Platform</div></div>
 </div>
 <div class="slide-num" id="slideNum">1 / 6</div>
 
@@ -129,30 +129,38 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
 <div class="slide" id="slide-2">
   <div class="wide">
     <div class="tag">The Problem</div>
-    <h2>Security teams are drowning in data, not insights.</h2>
-    <div class="two-col">
-      <div>
-        <ul style="margin-bottom:20px">
-          <li>Qualys CS surfaces thousands of vulnerabilities, secrets &amp; misconfigs across containers and K8s</li>
-          <li>Analysts spend hours writing API queries, exporting CSVs, building dashboards</li>
-          <li>By the time a report lands — the data is stale</li>
-          <li>No natural language interface to ask <em style="color:var(--text)">"what's critical right now?"</em></li>
-          <li>Security expertise is siloed — junior engineers can't query the API</li>
-        </ul>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-          <div class="stat"><div class="snum">40+</div><div class="slabel">API endpoints unused by most teams</div></div>
-          <div class="stat"><div class="snum">~3h</div><div class="slabel">Avg time to build a vulnerability report manually</div></div>
+    <h2 style="font-size:20px;margin-bottom:14px">POC calls stall. Email chains grow. Answers already exist.</h2>
+    <div class="two-col" style="align-items:start">
+      <div style="display:flex;flex-direction:column;gap:8px;align-self:start">
+        <div class="card" style="border-left:3px solid var(--red);padding:12px 14px">
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">&#128172; Eliminate Demo Friction</div>
+          <p style="font-size:11px">Instead of pausing to search for answers, Sheldon provides immediate, environment-specific responses, keeping conversations focused and moving toward a successful outcome.</p>
+        </div>
+        <div class="card" style="border-left:3px solid var(--orange);padding:12px 14px">
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">📄 Questions answered in docs — but no one finds them</div>
+          <p style="font-size:11px">Qualys documentation is comprehensive but scattered. Customers ask SMEs questions that are already documented — they just can't navigate to them.</p>
+        </div>
+        <div class="card" style="border-left:3px solid var(--yellow);padding:12px 14px">
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">☸️ K8s config queries block every deployment</div>
+          <p style="font-size:11px">Customers ask for specific Helm values that are well documented but buried inside Qualys artifact releases—taking significant time to locate.</p>
+        </div>
+        <div class="card" style="border-left:3px solid var(--blue);padding:12px 14px">
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">📧 Email chains run for weeks on basic questions</div>
+          <p style="font-size:11px">Simple deployment and scanning questions spiral into multi-week back-and-forth because answers are documented but inaccessible in the moment.</p>
         </div>
       </div>
-      <div class="card">
+      <div class="card" style="align-self:start">
         <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px">Without Sheldon</div>
         <div style="display:flex;flex-direction:column;gap:9px">
-          <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>Login to Qualys portal, navigate filters</div>
-          <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>Learn Qualys CS filter token syntax</div>
-          <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>Export CSV, open Excel, build pivot table</div>
-          <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>Create chart, write findings email</div>
-          <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>Repeat next week when data changes</div>
-          <div style="margin-top:10px;padding:10px;background:rgba(239,68,68,.08);border-radius:8px;font-size:12px;color:#f87171">⏱ ~3 hours for a simple query</div>
+          <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>SMEs manually answer repeat deployment questions</div>
+          <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>Customer searches docs, finds nothing, raises a ticket</div>
+          <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>K8s Helm config request — 2–3 day email thread</div>
+          <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>POC stalls waiting on answers available in the product</div>
+          <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>Deal velocity slows — customer loses momentum</div>
+        </div>
+        <div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="stat"><div class="snum">40+</div><div class="slabel">API endpoints that are available but not easily discoverable by customers</div></div>
+          <div class="stat"><div class="snum">Weeks</div><div class="slabel">Lost to documented questions asked over email</div></div>
         </div>
       </div>
     </div>
@@ -163,26 +171,25 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
 <div class="slide" id="slide-3">
   <div class="wide">
     <div class="tag">The Solution</div>
-    <h2>Meet <span class="grad-text">Sheldon</span> — Ask once, get answers instantly.</h2>
-    <div class="two-col">
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div class="card" style="border-color:rgba(249,115,22,.35)">
-          <div style="font-size:11px;color:var(--orange);font-weight:700;margin-bottom:6px">USER ASKS</div>
-          <div style="font-size:14px;color:var(--text)">"Show me all images with detected secrets"</div>
+    <h2 style="font-size:20px;margin-bottom:14px">Meet <span class="grad-text">Sheldon</span> — Ask once, get answers instantly.</h2>
+    <div class="two-col" style="align-items:start">
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div class="card" style="border-color:rgba(249,115,22,.35);padding:12px 14px">
+          <div style="font-size:10px;color:var(--orange);font-weight:700;margin-bottom:4px">USER ASKS</div>
+          <div style="font-size:13px;color:var(--text)">"Show me all images with detected secrets"</div>
         </div>
-        <div style="text-align:center;color:var(--muted);font-size:18px">↓</div>
-        <div class="card" style="border-color:rgba(59,130,246,.35)">
-          <div style="font-size:11px;color:#60a5fa;font-weight:700;margin-bottom:6px">SHELDON CALLS QUALYS API</div>
-          <div style="font-size:12px;color:var(--muted)"><code>find_images_with_secrets</code><br/><code>container.image.hasSecrets:true</code></div>
+        <div style="text-align:center;color:var(--muted);font-size:14px;line-height:1">↓</div>
+        <div class="card" style="border-color:rgba(59,130,246,.35);padding:12px 14px">
+          <div style="font-size:10px;color:#60a5fa;font-weight:700;margin-bottom:4px">SHELDON CALLS QUALYS API</div>
+          <div style="font-size:11px;color:var(--muted)"><code>find_images_with_secrets</code><br/><code>container.image.hasSecrets:true</code></div>
         </div>
-        <div style="text-align:center;color:var(--muted);font-size:18px">↓</div>
-        <div class="card" style="border-color:rgba(34,197,94,.35)">
-          <div style="font-size:11px;color:#4ade80;font-weight:700;margin-bottom:6px">ANSWER IN SECONDS</div>
-          <div style="font-size:13px;color:var(--muted)">Live table with image names, SHA, secret counts, and remediation guidance</div>
+        <div style="text-align:center;color:var(--muted);font-size:14px;line-height:1">↓</div>
+        <div class="card" style="border-color:rgba(34,197,94,.35);padding:12px 14px">
+          <div style="font-size:10px;color:#4ade80;font-weight:700;margin-bottom:4px">ANSWER IN SECONDS</div>
+          <div style="font-size:12px;color:var(--muted)">Live table with image names, SHA, secret counts, and remediation guidance</div>
         </div>
       </div>
       <div>
-        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">More example queries</div>
         <div style="display:flex;flex-direction:column;gap:7px">
           <div class="card" style="padding:11px 14px"><div style="font-size:13px;color:var(--text)">"Which containers have critical CVEs in production?"</div></div>
           <div class="card" style="padding:11px 14px"><div style="font-size:13px;color:var(--text)">"Chart image vulnerabilities by severity"</div></div>
@@ -200,29 +207,29 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
 <div class="slide" id="slide-4">
   <div class="wide">
     <div class="tag">Technical Architecture</div>
-    <h2>Live data. No RAG. No stale index.</h2>
-    <div class="two-col">
-      <div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+    <h2 style="font-size:20px;margin-bottom:10px">Live data. No RAG. No stale index.</h2>
+    <div class="two-col" style="align-items:start">
+      <div style="align-self:start;padding-top:28px">
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:0">
           <div style="display:flex;align-items:center;gap:8px">
             <div class="abox" style="flex:1"><div class="al">React UI</div><div class="as">Vite · Tailwind · Inter</div></div>
             <div class="aarr">→</div>
             <div class="abox" style="flex:1"><div class="al">FastAPI</div><div class="as">Async Python · Uvicorn</div></div>
           </div>
-          <div style="text-align:center;color:var(--muted);font-size:16px">↓</div>
+          <div style="text-align:center;color:var(--muted);font-size:13px;line-height:1">↓</div>
           <div style="display:flex;align-items:center;gap:8px">
             <div class="abox" style="flex:1;border-color:rgba(249,115,22,.4)"><div class="al" style="color:var(--orange)">Claude 3 Haiku</div><div class="as">Amazon Bedrock</div></div>
             <div class="aarr">⇄</div>
             <div class="abox" style="flex:1;border-color:rgba(59,130,246,.4)"><div class="al" style="color:#60a5fa">Qualys CS API</div><div class="as">Live · Real-time</div></div>
           </div>
-          <div style="text-align:center;color:var(--muted);font-size:16px">↑</div>
+          <div style="text-align:center;color:var(--muted);font-size:13px;line-height:1">↑</div>
           <div class="abox" style="border-color:rgba(99,102,241,.4)"><div class="al" style="color:#a5b4fc">Shared Tool Registry</div><div class="as">40+ tools · Single source of truth for agent + MCP server</div></div>
         </div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div class="fcard"><div class="fi">🔴</div><h3>No RAG / No Vector DB</h3><p>Every answer fetches live data from Qualys APIs. No stale index, no embedding pipeline, no hallucinated vulnerability data.</p></div>
-        <div class="fcard"><div class="fi">⚡</div><h3>Parallel Async Tool Calls</h3><p>Multiple Qualys API calls fire simultaneously via <code>asyncio.gather</code> for fast multi-step answers.</p></div>
-        <div class="fcard"><div class="fi">🔒</div><h3>Your AWS, Your Data</h3><p>Claude runs on <strong>your</strong> Amazon Bedrock account. Zero data sharing with Anthropic. Stays within your VPC.</p></div>
+      <div style="display:flex;flex-direction:column;gap:5px;align-self:start">
+        <div class="fcard" style="padding:10px 14px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span style="font-size:15px">&#128308;</span><h3 style="font-size:12px;margin:0">No RAG / No Vector DB</h3></div><p style="font-size:11px">Every answer fetches live data from Qualys APIs.<br/>No stale index, no embedding pipeline, no hallucinated vulnerability data.</p></div>
+        <div class="fcard" style="padding:10px 14px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span style="font-size:15px">&#9889;</span><h3 style="font-size:12px;margin:0">Parallel Async Tool Calls</h3></div><p style="font-size:11px">Multiple Qualys API calls fire simultaneously via <code>asyncio.gather</code> for fast multi-step answers.</p></div>
+        <div class="fcard" style="padding:10px 14px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span style="font-size:15px">&#128274;</span><h3 style="font-size:12px;margin:0">Your AWS, Your Data</h3></div><p style="font-size:11px">Claude runs on <strong>your</strong> Amazon Bedrock account.<br/>Zero data sharing with Anthropic. Stays within your VPC.</p></div>
       </div>
     </div>
   </div>
@@ -238,15 +245,12 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
         <thead><tr><th>Category</th><th>Capability</th><th>Example Query</th></tr></thead>
         <tbody>
           <tr><td>🛡️ Vulnerabilities</td><td>Critical CVE analysis across all containers &amp; images</td><td>"Show all critical CVEs running in production"</td></tr>
-          <tr><td>🔑 Secrets</td><td>Detect secrets embedded in image layers</td><td>"Which images have secrets detected?"</td></tr>
-          <tr><td>🦠 Malware</td><td>Malware detection across container layers</td><td>"Find images with malware, show details"</td></tr>
+          <tr><td>🔑 Secrets &amp; 🦠 Malware</td><td>Detect secrets &amp; malware embedded in image layers</td><td>"Which images have secrets or malware detected?"</td></tr>
           <tr><td>📦 SBOM</td><td>Full software inventory per container or image</td><td>"List all software in nginx:latest"</td></tr>
           <tr><td>⏰ EOL Software</td><td>Packages nearing end-of-life</td><td>"Show packages EOL in the next 3 months"</td></tr>
           <tr><td>🤖 AI Software</td><td>Detect AI/ML libraries in images</td><td>"Which images have AI software?"</td></tr>
           <tr><td>☸️ K8s Posture</td><td>Failed security posture control checks</td><td>"What K8s posture checks are failing?"</td></tr>
-          <tr><td>🗄️ Registries</td><td>Scan status &amp; connector health</td><td>"Show registry scan status"</td></tr>
-          <tr><td>📡 Sensors</td><td>Runtime sensor deployment &amp; Helm chart generation</td><td>"Deploy sensor on OpenShift with proxy YAML"</td></tr>
-          <tr><td>🔬 CI/CD</td><td>QScanner integration for pipeline scanning</td><td>"How do I add QScanner to my Jenkins pipeline?"</td></tr>
+
           <tr><td>📊 Charts</td><td>Inline pie / bar / line chart visualisations</td><td>"Chart vulnerabilities by severity"</td></tr>
         </tbody>
       </table>

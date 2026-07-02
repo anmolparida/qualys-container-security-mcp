@@ -12,7 +12,7 @@ type Tab = 'containers' | 'images' | 'registry' | 'k8s' | 'chat'
 const NAV = [
   { id: 'containers' as Tab, label: 'Containers', icon: Container },
   { id: 'images' as Tab, label: 'Images', icon: ImageIcon },
-  { id: 'registry' as Tab, label: 'Registry Health', icon: Database },
+  { id: 'registry' as Tab, label: 'Registry', icon: Database },
   { id: 'k8s' as Tab, label: 'K8s Posture', icon: Network },
   { id: 'chat' as Tab, label: 'Sheldon', icon: Zap },
 ]
