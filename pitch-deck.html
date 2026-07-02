@@ -36,7 +36,7 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 
 /* TYPE */
 .tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--orange);background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.3);border-radius:999px;padding:4px 12px;margin-bottom:14px}
-h1{font-size:clamp(26px,4vw,50px);font-weight:800;line-height:1.12;letter-spacing:-.03em}
+h1{font-size:clamp(21px,3.2vw,40px);font-weight:800;line-height:1.12;letter-spacing:-.03em}
 h2{font-size:clamp(18px,2.2vw,28px);font-weight:700;letter-spacing:-.02em;margin-bottom:20px}
 h3{font-size:14px;font-weight:600;margin-bottom:8px;color:var(--text)}
 p,li{font-size:14px;line-height:1.65;color:var(--muted)}
@@ -113,11 +113,10 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
 <!-- ═══ SLIDE 1: COVER ═══ -->
 <div class="slide slide-cover active" id="slide-1">
   <div class="narrow">
-    <div class="tag">Executive Briefing — Confidential</div>
-    <h1 style="margin-bottom:14px"><span class="grad-text">Sheldon</span><br/>AI Security Intelligence<br/>for Qualys KCS</h1>
-    <p style="font-size:16px;max-width:520px;margin:0 auto 32px">Natural language access to your entire Kubernetes &amp; Container Security posture — powered by live Qualys data and Claude on Amazon Bedrock.</p>
+    <h1 style="margin-bottom:14px"><span class="grad-text">Sheldon</span><br/>AI Security Intelligence<br/><span style="color:#60a5fa">Kubernetes &amp; Container Security</span></h1>
+    <p style="font-size:13px;max-width:580px;margin:0 auto 32px">Natural language access to your entire Kubernetes &amp; Container Security Platform.<br/>Powered by live Qualys data and Claude on Amazon Bedrock.</p>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-      <span class="badge green">Live Demo Ready</span>
+      <span class="badge green">Live Demo</span>
       <span class="badge yellow">Prototype</span>
       <span class="badge blue">Amazon Bedrock</span>
       <span class="badge purple">Qualys CS API</span>
@@ -146,7 +145,7 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
         </div>
         <div class="card" style="border-left:3px solid var(--blue);padding:12px 14px">
           <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">📧 Email chains run for weeks on basic questions</div>
-          <p style="font-size:11px">Simple deployment and scanning questions spiral into multi-week back-and-forth because answers are documented but inaccessible in the moment.</p>
+          <p style="font-size:11px">Simple deployment and scanning questions spiral into multi-week back-and-forth because answers are documented but customers don't look into it.</p>
         </div>
       </div>
       <div class="card" style="align-self:start">
@@ -277,7 +276,7 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
         <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Future</div>
         <div class="rrow"><span class="badge yellow">Med</span><div><div class="rtext">Multi-tenant credential isolation</div><div class="rsub">Support multiple Qualys subscriptions</div></div></div>
         <div class="rrow"><span class="badge green">Low</span><div><div class="rtext">PDF / CSV export from chat</div><div class="rsub">One-click report generation</div></div></div>
-        <div class="rrow"><span class="badge green">Low</span><div><div class="rtext">Slack / Teams bot integration</div><div class="rsub">Ask Sheldon directly from your chat tool</div></div></div>
+        <div class="rrow"><span class="badge yellow">Med</span><div><div class="rtext">Add more tools to registry to fine-tune results</div><div class="rsub">Broader API coverage for more precise agent responses</div></div></div>
         <div class="rrow"><span class="badge green">Low</span><div><div class="rtext">Scheduled proactive reports</div><div class="rsub">Daily digest of new critical findings</div></div></div>
       </div>
     </div>
