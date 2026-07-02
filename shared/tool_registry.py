@@ -106,7 +106,7 @@ TOOLS: list[ToolDef] = [
     # Images
     {
         "name": "list_images",
-        "description": "List container images in the Qualys account with optional filtering.",
+        "description": "List container images in the Qualys account with optional filtering. To sort by TruRisk score use sort='riskScore:desc'.",
         "parameters": {
             "filter": {"type": "string", "default": ""},
             "page_number": {"type": "integer", "default": 1},
