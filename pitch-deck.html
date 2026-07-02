@@ -131,9 +131,13 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
     <h2 style="font-size:20px;margin-bottom:14px">POC calls stall. Email chains grow. Answers already exist.</h2>
     <div class="two-col" style="align-items:stretch">
       <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="card" style="border-left:3px solid var(--red);padding:12px 14px;flex:1">
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">🙋 TAMs struggle to confirm what's supported</div>
+          <p style="font-size:11px">TAMs find it difficult to communicate quickly whether certain features or configurations are supported, leading to delays and escalations.</p>
+        </div>
         <div class="card" style="border-left:3px solid var(--orange);padding:12px 14px;flex:1">
           <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">📄 Questions answered in docs — but no one finds them</div>
-          <p style="font-size:11px">Qualys documentation is comprehensive but scattered. Customers ask SMEs questions that are already documented — they just can't navigate to them.</p>
+          <p style="font-size:11px">Qualys documentation is comprehensive but scattered. Customers ask questions over email that are already documented — they just can't navigate to them.</p>
         </div>
         <div class="card" style="border-left:3px solid var(--yellow);padding:12px 14px;flex:1">
           <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">☸️ K8s config queries block every deployment</div>
@@ -147,14 +151,14 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
       <div class="card">
         <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px">Without Sheldon</div>
         <div style="display:flex;flex-direction:column;gap:9px">
-          <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>SMEs manually answer repeat deployment questions</div>
+          <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>Repeatedly answer the same deployment questions</div>
           <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>Customer doesn't search the docs effectively, raises a ticket</div>
           <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>K8s Helm config request — 2–3 day email thread</div>
           <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>POC stalls waiting on answers available in the product</div>
           <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>Deal velocity slows — customer loses momentum</div>
         </div>
         <div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <div class="stat"><div class="snum">40+</div><div class="slabel">API endpoints that are available but not easily discoverable by customers</div></div>
+          <div class="stat"><div class="snum">40+</div><div class="slabel">API endpoints that are available but are not used by customers</div></div>
           <div class="stat"><div class="snum">Weeks</div><div class="slabel">Lost to documented questions asked over email</div></div>
         </div>
       </div>
