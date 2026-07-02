@@ -129,26 +129,22 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
   <div class="wide">
     <div class="tag">The Problem</div>
     <h2 style="font-size:20px;margin-bottom:14px">POC calls stall. Email chains grow. Answers already exist.</h2>
-    <div class="two-col" style="align-items:start">
-      <div style="display:flex;flex-direction:column;gap:8px;align-self:start">
-        <div class="card" style="border-left:3px solid var(--orange);padding:12px 14px">
+    <div class="two-col" style="align-items:stretch">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="card" style="border-left:3px solid var(--orange);padding:12px 14px;flex:1">
           <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">📄 Questions answered in docs — but no one finds them</div>
           <p style="font-size:11px">Qualys documentation is comprehensive but scattered. Customers ask SMEs questions that are already documented — they just can't navigate to them.</p>
         </div>
-        <div class="card" style="border-left:3px solid var(--yellow);padding:12px 14px">
+        <div class="card" style="border-left:3px solid var(--yellow);padding:12px 14px;flex:1">
           <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">☸️ K8s config queries block every deployment</div>
           <p style="font-size:11px">Customers ask for specific Helm values that are well documented but buried inside Qualys artifact releases—taking significant time to locate.</p>
         </div>
-        <div class="card" style="border-left:3px solid var(--blue);padding:12px 14px">
+        <div class="card" style="border-left:3px solid var(--blue);padding:12px 14px;flex:1">
           <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">📧 Email chains run for weeks on basic questions</div>
           <p style="font-size:11px">Simple deployment and scanning questions spiral into multi-week back-and-forth because answers are documented but customers don't look into it.</p>
         </div>
-        <div class="card" style="border-left:3px solid var(--red);padding:12px 14px">
-          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">&#128172; Eliminate Demo Friction</div>
-          <p style="font-size:11px">Instead of pausing to search for answers, Sheldon provides immediate, environment-specific responses, keeping conversations focused and moving toward a successful outcome.</p>
-        </div>
       </div>
-      <div class="card" style="align-self:start">
+      <div class="card">
         <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px">Without Sheldon</div>
         <div style="display:flex;flex-direction:column;gap:9px">
           <div style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><span style="color:var(--red)">✗</span>SMEs manually answer repeat deployment questions</div>
@@ -222,14 +218,18 @@ code{font-family:Menlo,monospace;font-size:11px;background:rgba(51,65,85,.7);bor
             <div class="abox" style="flex:1;border-color:rgba(59,130,246,.4)"><div class="al" style="color:#60a5fa">Qualys CS API</div><div class="as">Live data · 40+ endpoints</div></div>
           </div>
           <div style="text-align:center;color:var(--muted);font-size:13px;line-height:1">↑</div>
-          <div class="abox" style="border-color:rgba(99,102,241,.4)"><div class="al" style="color:#a5b4fc">&#128279; Shared Tool Registry</div><div class="as">40+ tools · used by agent &amp; MCP server · single source of truth</div></div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="abox" style="flex:1;border-color:rgba(99,102,241,.4)"><div class="al" style="color:#a5b4fc">&#128279; Shared Tool Registry</div><div class="as">40+ tools · single source of truth</div></div>
+            <div class="aarr">→</div>
+            <div class="abox" style="flex:1;border-color:rgba(99,102,241,.4)"><div class="al" style="color:#a5b4fc">MCP Server</div><div class="as">Cursor · any MCP client</div></div>
+          </div>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:5px;align-self:start">
         <div class="fcard" style="padding:10px 14px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span style="font-size:15px">&#128308;</span><h3 style="font-size:12px;margin:0">Docs Cached at Startup — No RAG</h3></div><p style="font-size:11px">Key doc pages pre-loaded at startup. Full page context passed to the model —<br/>no chunking, no missed answers.</p></div>
         <div class="fcard" style="padding:10px 14px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span style="font-size:15px">&#9889;</span><h3 style="font-size:12px;margin:0">Parallel Async Tool Calls</h3></div><p style="font-size:11px">Multiple Qualys API calls fire simultaneously via <code>asyncio.gather</code> for fast multi-step answers.</p></div>
         <div class="fcard" style="padding:10px 14px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span style="font-size:15px">&#128274;</span><h3 style="font-size:12px;margin:0">Your AWS, Your Data</h3></div><p style="font-size:11px">Claude runs on <strong>your</strong> Amazon Bedrock account.<br/>Zero data sharing with Anthropic. Stays within your VPC.</p></div>
-        <div class="fcard" style="padding:10px 14px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span style="font-size:15px">&#128279;</span><h3 style="font-size:12px;margin:0">MCP Server Included</h3></div><p style="font-size:11px">Same tool registry exposed as an MCP server.<br/>Works with Cursor or any MCP-compatible client.</p></div>
+        <div class="fcard" style="padding:10px 14px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span style="font-size:15px">&#128279;</span><h3 style="font-size:12px;margin:0">MCP Server Included</h3></div><p style="font-size:11px">Same tool registry exposed as an MCP server.</p></div>
       </div>
     </div>
   </div>
