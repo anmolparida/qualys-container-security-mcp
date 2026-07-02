@@ -26,6 +26,15 @@ def _path(path: str, fixed_params: dict[str, Any] | None = None, transform: Call
     return build
 
 
+def _path_post(path: str) -> RouteBuilder:
+    """Route builder for POST tools — passes all inputs as the request body."""
+    def build(inputs: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+        body = {k: v for k, v in inputs.items() if v not in (None, "")}
+        return path, body
+    build._method = "POST"
+    return build
+
+
 def _path_with_sha(path_template: str) -> RouteBuilder:
     def build(inputs: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         path = path_template.format(**inputs)
@@ -219,6 +228,35 @@ TOOLS: list[ToolDef] = [
             "page_size": {"type": "integer", "default": 50},
         },
         "route": _path("/registry"),
+    },
+    {
+        "name": "create_registry",
+        "description": "Create a new registry connector in Qualys CS. Supports V2_PRIVATE, DockerHub, AWS ECR, ACR, GCR, Harbor. Required fields: registryType, registryUri, registryName, credentialType. For BasicAuth: credential.username + credential.password. For TokenAuth: credential.username + credential.accessToken. For AWS ECR also provide aws.arn, aws.region, aws.accountType.",
+        "parameters": {
+            "registryType": {"type": "string", "description": "e.g. V2_PRIVATE, DockerHub, AWS_ECR, ACR, GCR, Harbor"},
+            "registryUri": {"type": "string", "description": "Registry URL"},
+            "registryName": {"type": "string", "description": "Display name for the registry"},
+            "credentialType": {"type": "string", "description": "e.g. None, BasicAuth, TokenAuth"},
+            "username": {"type": "string", "default": ""},
+            "password": {"type": "string", "default": ""},
+            "accessToken": {"type": "string", "default": ""},
+            "dockerHubOrgName": {"type": "string", "default": ""},
+        },
+        "route": _path_post("/registry"),
+    },
+    {
+        "name": "validate_registry",
+        "description": "Validate registry connection parameters before creating a registry in Qualys CS.",
+        "parameters": {
+            "registryType": {"type": "string"},
+            "registryUri": {"type": "string"},
+            "registryName": {"type": "string"},
+            "credentialType": {"type": "string"},
+            "username": {"type": "string", "default": ""},
+            "password": {"type": "string", "default": ""},
+            "accessToken": {"type": "string", "default": ""},
+        },
+        "route": _path_post("/registry/validate"),
     },
     {
         "name": "get_registry_details",

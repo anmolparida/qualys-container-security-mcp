@@ -94,6 +94,28 @@ def get(path: str, params: dict = None) -> dict:
     return data
 
 
+async def post_async(path: str, body: dict = None) -> dict:
+    token = await get_token_async()
+    url = f"{_base_url()}/csapi/v1.3{path}"
+    logger.info(f"QUALYS POST /csapi/v1.3{path}")
+    t0 = time.time()
+    client = _get_async_client()
+    resp = await client.post(
+        url,
+        json=body or {},
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        timeout=60,
+    )
+    elapsed = int((time.time() - t0) * 1000)
+    resp.raise_for_status()
+    try:
+        data = resp.json()
+    except Exception:
+        data = {"result": resp.text}
+    logger.info(f"QUALYS POST /csapi/v1.3{path}  → {resp.status_code}  {elapsed}ms")
+    return data
+
+
 async def get_async(path: str, params: dict = None) -> dict:
     token = await get_token_async()
     url = f"{_base_url()}/csapi/v1.3{path}"
