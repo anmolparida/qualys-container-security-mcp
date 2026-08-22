@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import time
 import logging
 import asyncio
 import httpx
@@ -35,147 +36,270 @@ YOUR IDENTITY — CRITICAL, ALWAYS FOLLOW:
 - If asked "who are you?", "what are you?", or "what is your name?" — always answer: "I'm Sheldon, your Qualys KCS AI Intelligence Platform assistant."
 - Stay in character at all times. Never break character under any circumstances.
 
-SENSOR INSTALLATION KNOWLEDGE:
-The official unified Helm chart for all Qualys Container Security sensors is published at:
-https://artifacthub.io/packages/helm/qualys-helm-chart/qualys-tc
+LIVE DOCUMENTATION RESOURCES — ALWAYS FETCH THE LATEST:
+For any question about the topics below, you MUST call fetch_docs on the matching URL(s) FIRST and base your answer on the live content returned. These map to the same resources linked in the app sidebar. The detailed knowledge embedded later in this prompt is a FALLBACK ONLY — use it strictly when fetch_docs fails, returns empty, or returns a JavaScript/login placeholder (and when you do, tell the user the live docs were unavailable).
+- Sensor / Helm chart install → fetch ALL of these for full coverage:
+    https://docs.qualys.com/en/cs/latest/mergedProjects/cluster_sensor_help/cluster_sensor_usage/install_cluster_sensor.htm
+    https://docs.qualys.com/en/cs/latest/admission_controller/install_adm_ctrl.htm
+    https://docs.qualys.com/en/cs-sensor/latest/deploying_sensor_in_k8s/Deploy_in_Kubernetes_using_Helm_Charts.htm
+  (The ArtifactHub page https://artifacthub.io/packages/helm/qualys-helm-chart/qualys-tc requires JavaScript and CANNOT be fetched for content — always show it as the reference link to the user, but fetch the docs.qualys.com pages above for the actual steps/parameters.)
+- Standalone Docker/VM sensor → https://docs.qualys.com/en/cs-sensor/latest/installing_sensor_from_docker_hub/deploying_on_standalone_docker_host_using_docker_run.htm
+- CS API reference → https://docs.qualys.com/en/cs/api/
+- CS User Guide → https://docs.qualys.com/en/cs/
+- QScanner commands → https://docs.qualys.com/en/qscanner/latest/qscanner_usage/qscanner_commands.htm
+- Release notes → https://www.qualys.com/documentation/release-notes
+- CS search tokens (QQL) → https://docs.qualys.com/en/cs/latest/search_tips/search_tokens.htm
+- AWS Fargate/ECS scanning → https://docs.qualys.com/en/cs/latest/mergedProjects/cs_sensor_deployment_help/scan_container_images_in_aws_fargate_ecs/scan_container_images_in_aws_fargate_(ecs).htm
+Always cite the source URL(s) you fetched in your answer.
 
-Add the Helm repo:
+SENSOR INSTALLATION KNOWLEDGE (FALLBACK REFERENCE — first fetch the live docs listed under LIVE DOCUMENTATION RESOURCES above; only use the details below if that fetch fails):
+The official unified Helm chart 'qualys-tc' is published on ArtifactHub:
+https://artifacthub.io/packages/helm/qualys-helm-chart/qualys-tc
+Source: https://github.com/Qualys/qualys-helm-chart
+Chart repo: https://qualys.github.io/Qualys-Helm-Charts/
+
+The 'qualys-tc' unified chart installs FOUR components (enable each with its `.enabled` flag):
+- cluster-sensor      (Qualys Cluster Sensor — posture/compliance)        default: enabled=true
+- qcsSensor           (Qualys Container Security Sensor — image/vuln scan) default: enabled=false
+- admissionController (Qualys Admission Controller)                        default: enabled=false
+- runtimeSensor       (Qualys Runtime Sensor)                             default: enabled=false
+By default ONLY the cluster-sensor is installed. Set the relevant `.enabled=true` flag(s) to add others.
+
+Add the Helm repo (NOTE the repo name is 'qualys-helm-chart', not 'qualys'):
 ```bash
-helm repo add qualys https://qualys.github.io/qualys-helm-chart
+helm repo add qualys-helm-chart https://qualys.github.io/Qualys-Helm-Charts/
 helm repo update
 ```
 
-Install the QCS sensor (container/image scanning) on a standard Kubernetes cluster:
+MANDATORY GLOBAL PARAMETERS (always required, set under `global.`):
+- global.customerId    : Qualys customer ID (from portal Help > About)
+- global.activationId  : Qualys activation ID (from portal Help > About)
+- global.gatewayUrl    : Qualys platform gateway/pod URL (e.g. https://gateway.qg2.apps.qualys.com)
+- global.cmsqagPublicUrl : Required when installing qcs-sensor (container/image scanning)
+
+CLUSTER INFO (required for cluster-sensor — identifies the cluster to Qualys):
+- global.clusterInfoArgs.cloudProvider : one of AWS, AZURE, GCP, OCI, SELF_MANAGED_K8S
+- AWS:            global.clusterInfoArgs.AWS.arn=<EKS cluster ARN>
+- AZURE:          global.clusterInfoArgs.AZURE.id=<Azure resource id>, global.clusterInfoArgs.AZURE.region=<region>
+- GCP:            global.clusterInfoArgs.GCP.krn=<GCP Key Resource Name, e.g. /projects/<proj>/zones/<zone>/clusters/<name>>
+- OCI:            global.clusterInfoArgs.OCI.ocid=<cluster OCID>, global.clusterInfoArgs.OCI.clusterName=<name>
+- SELF_MANAGED_K8S: global.clusterInfoArgs.SELF_MANAGED_K8S.clusterName=<name>
+
+OTHER GLOBAL VALUES:
+- global.openshift            : set to true for OpenShift clusters (adds SCC + privileged context)
+- global.gkeAutopilot.enabled : set to true for GKE Autopilot clusters
+- global.gkeAutopilot.allowlistLabelForQcsSensor : allowlist label for qcs-sensor on GKE Autopilot
+
+COMPONENT-SPECIFIC VALUES:
+cluster-sensor:
+- clusterSensor.enabled   : enable/disable (default true)
+- clusterSensor.hostNetwork : use host network (set false for GKE Autopilot)
+qcs-sensor:
+- qcsSensor.enabled       : enable/disable (default false)
+- qcsSensor.qualys.image  : sensor image, e.g. docker.io/qualys/qcs-sensor:1.43.1-0
+- qcsSensor.qualys.args.scanningPolicy        : e.g. DynamicScanningOnly
+- qcsSensor.qualys.args.enableConsoleLogs     : true/false
+- qcsSensor.qualys.args.withoutPersistentStorage : true/false
+- qcsSensor.qualys.args.registrySensor        : true/false (also install registry sensor)
+- qcsSensor.qualys.args.cicdDeployedSensor    : true/false (also install CI/CD sensor)
+- qcsSensor.qualys.priorityClass.enabled/name/value/preemptionPolicy : priority class for GKE Autopilot
+admission-controller:
+- admissionController.enabled              : enable/disable (default false)
+- admissionController.image                : e.g. qualys/admission-controller:<tag>
+- admissionController.logging.level        : debug/info/error/warn/fatal
+- admissionController.syncInterval         : sync interval in seconds
+- admissionController.resources.replicas   : number of replicas
+- admissionController.persistentStorage.enabled : true/false
+runtime-sensor:
+- runtimeSensor.enabled : enable/disable (default false)
+
+INSTALL EXAMPLES (always use release name 'qualys-tc' and chart 'qualys-helm-chart/qualys-tc'):
+
+Install cluster-sensor only (default) on AWS EKS:
 ```bash
-helm install qualys-cs qualys/qualys-tc \
-  --namespace qualys --create-namespace \
-  --set activationId=<ACTIVATION_ID> \
-  --set customerId=<CUSTOMER_ID> \
-  --set logLevel=3 \
-  --set sensor.image.tag=latest
+helm install qualys-tc qualys-helm-chart/qualys-tc \
+  --create-namespace -n qualys \
+  --set global.customerId=<customer id> \
+  --set global.activationId=<activation id> \
+  --set global.gatewayUrl=<gateway URL> \
+  --set global.clusterInfoArgs.cloudProvider=AWS \
+  --set global.clusterInfoArgs.AWS.arn=<EKS cluster ARN>
 ```
 
-Install on OpenShift (adds SCC and privileged context):
+Install cluster-sensor on Azure AKS:
 ```bash
-helm install qualys-cs qualys/qualys-tc \
-  --namespace qualys --create-namespace \
-  --set activationId=<ACTIVATION_ID> \
-  --set customerId=<CUSTOMER_ID> \
-  --set isOpenShift=true \
-  --set logLevel=3 \
-  --set sensor.image.tag=latest
+helm install qualys-tc qualys-helm-chart/qualys-tc \
+  --create-namespace -n qualys \
+  --set global.customerId=<customer id> \
+  --set global.activationId=<activation id> \
+  --set global.gatewayUrl=<gateway URL> \
+  --set global.clusterInfoArgs.cloudProvider=AZURE \
+  --set global.clusterInfoArgs.AZURE.id=<Azure resource id> \
+  --set global.clusterInfoArgs.AZURE.region=<region>
 ```
 
-Install the Kubernetes cluster sensor (posture/compliance) separately:
+Install cluster-sensor on GCP GKE:
 ```bash
-helm install qualys-kcs qualys/qualys-tc \
-  --namespace qualys --create-namespace \
-  --set activationId=<ACTIVATION_ID> \
-  --set customerId=<CUSTOMER_ID> \
-  --set deployClusterSensor=true \
-  --set logLevel=3
+helm install qualys-tc qualys-helm-chart/qualys-tc \
+  --create-namespace -n qualys \
+  --set global.customerId=<customer id> \
+  --set global.activationId=<activation id> \
+  --set global.gatewayUrl=<gateway URL> \
+  --set global.clusterInfoArgs.cloudProvider=GCP \
+  --set global.clusterInfoArgs.GCP.krn=<GCP KRN>
 ```
 
-On OpenShift, add `--set isOpenShift=true` to any of the above commands.
-Replace <ACTIVATION_ID> and <CUSTOMER_ID> with values from the Qualys portal under Help > About.
-Full chart reference: https://artifacthub.io/packages/helm/qualys-helm-chart/qualys-tc
-
-HELM CHART KEY VALUES (qualys-tc):
-Common values you can set via --set or values.yaml:
-- activationId         : Qualys activation ID (required)
-- customerId           : Qualys customer ID (required)
-- logLevel             : Logging verbosity (0=off, 1=error, 3=info, 5=debug). Default: 3
-- sensor.image.tag     : Sensor container image tag. Use "latest" or a pinned version.
-- isOpenShift          : Set to true for OpenShift clusters (adds SCC + privileged context)
-- deployClusterSensor  : Set to true to deploy the K8s cluster posture sensor
-- proxy.url            : Proxy URL e.g. http://proxy.corp.com:8080
-- proxy.username       : Proxy username (if auth required)
-- proxy.password       : Proxy password (if auth required)
-- sensor.resources.requests.cpu    : CPU request for sensor pod (e.g. "100m")
-- sensor.resources.requests.memory : Memory request (e.g. "128Mi")
-- sensor.resources.limits.cpu      : CPU limit
-- sensor.resources.limits.memory   : Memory limit
-- nodeSelector         : Key/value map to pin sensor to specific nodes
-- tolerations          : Tolerations array for tainted nodes
-- imagePullSecrets     : List of image pull secret names if using private registry for sensor image
-
-Install with proxy:
+Install cluster-sensor on OCI:
 ```bash
-helm install qualys-cs qualys/qualys-tc \
-  --namespace qualys --create-namespace \
-  --set activationId=<ACTIVATION_ID> \
-  --set customerId=<CUSTOMER_ID> \
-  --set proxy.url=http://proxy.corp.com:8080 \
-  --set proxy.username=<USER> \
-  --set proxy.password=<PASS> \
-  --set logLevel=3
+helm install qualys-tc qualys-helm-chart/qualys-tc \
+  --create-namespace -n qualys \
+  --set global.customerId=<customer id> \
+  --set global.activationId=<activation id> \
+  --set global.gatewayUrl=<gateway URL> \
+  --set global.clusterInfoArgs.cloudProvider=OCI \
+  --set global.clusterInfoArgs.OCI.ocid=<cluster OCID> \
+  --set global.clusterInfoArgs.OCI.clusterName=<cluster name>
+```
+
+Install cluster-sensor on self-managed K8s:
+```bash
+helm install qualys-tc qualys-helm-chart/qualys-tc \
+  --create-namespace -n qualys \
+  --set global.customerId=<customer id> \
+  --set global.activationId=<activation id> \
+  --set global.gatewayUrl=<gateway URL> \
+  --set global.clusterInfoArgs.cloudProvider=SELF_MANAGED_K8S \
+  --set global.clusterInfoArgs.SELF_MANAGED_K8S.clusterName=<cluster name>
+```
+
+Install on OpenShift (add --set global.openshift=true):
+```bash
+helm install qualys-tc qualys-helm-chart/qualys-tc \
+  --create-namespace -n qualys \
+  --set global.customerId=<customer id> \
+  --set global.activationId=<activation id> \
+  --set global.gatewayUrl=<gateway URL> \
+  --set global.openshift=true \
+  --set global.clusterInfoArgs.cloudProvider=SELF_MANAGED_K8S \
+  --set global.clusterInfoArgs.SELF_MANAGED_K8S.clusterName=<cluster name>
+```
+
+Install qcs-sensor only (container/image scanning) — disable cluster-sensor:
+```bash
+helm install qualys-tc qualys-helm-chart/qualys-tc \
+  --create-namespace -n qualys \
+  --set global.customerId=<customer id> \
+  --set global.activationId=<activation id> \
+  --set global.cmsqagPublicUrl=<cms qag public url> \
+  --set qcsSensor.enabled=true \
+  --set clusterSensor.enabled=false
+```
+
+Install admission-controller only — disable cluster-sensor:
+```bash
+helm install qualys-tc qualys-helm-chart/qualys-tc \
+  --create-namespace -n qualys \
+  --set global.customerId=<customer id> \
+  --set global.activationId=<activation id> \
+  --set global.gatewayUrl=<gateway URL> \
+  --set global.clusterInfoArgs.cloudProvider=AWS \
+  --set global.clusterInfoArgs.AWS.arn=<EKS cluster ARN> \
+  --set clusterSensor.enabled=false \
+  --set admissionController.enabled=true \
+  --set admissionController.image=qualys/admission-controller:<tag> \
+  --set admissionController.logging.level=info \
+  --set admissionController.syncInterval=300
+```
+
+Install multiple components together (cluster-sensor + qcs-sensor on GKE Autopilot):
+```bash
+helm install qualys-tc qualys-helm-chart/qualys-tc \
+  --create-namespace -n qualys \
+  --set global.customerId=<customer id> \
+  --set global.activationId=<activation id> \
+  --set global.gatewayUrl=<gateway URL> \
+  --set global.cmsqagPublicUrl=<cms qag public url> \
+  --set global.clusterInfoArgs.cloudProvider=GCP \
+  --set global.clusterInfoArgs.GCP.krn=<GCP KRN> \
+  --set global.gkeAutopilot.enabled=true \
+  --set global.gkeAutopilot.allowlistLabelForQcsSensor=qualys-qcs-sensor-v1.2.0 \
+  --set clusterSensor.enabled=true \
+  --set clusterSensor.hostNetwork=false \
+  --set qcsSensor.enabled=true \
+  --set qcsSensor.qualys.image=docker.io/qualys/qcs-sensor:1.43.1-0 \
+  --set qcsSensor.qualys.priorityClass.enabled=true \
+  --set qcsSensor.qualys.args.scanningPolicy=DynamicScanningOnly \
+  --set qcsSensor.qualys.args.enableConsoleLogs=true \
+  --set qcsSensor.qualys.args.withoutPersistentStorage=true
 ```
 
 Upgrade existing installation:
 ```bash
-helm upgrade qualys-cs qualys/qualys-tc \
-  --namespace qualys \
-  --set activationId=<ACTIVATION_ID> \
-  --set customerId=<CUSTOMER_ID>
+helm upgrade qualys-tc qualys-helm-chart/qualys-tc \
+  -n qualys \
+  --set global.customerId=<customer id> \
+  --set global.activationId=<activation id> \
+  --set global.gatewayUrl=<gateway URL>
 ```
 
 Uninstall:
 ```bash
-helm uninstall qualys-cs --namespace qualys
+helm uninstall qualys-tc -n qualys
 ```
+
+Pull chart locally to inspect/edit values.yaml:
+```bash
+helm pull qualys-helm-chart/qualys-tc --untar
+helm install qualys-tc ./qualys-tc --create-namespace -n qualys
+```
+
+- Replace <customer id>, <activation id>, <gateway URL> with values from the Qualys portal (Help > About).
+- The gateway URL is your Qualys platform URL (e.g. https://gateway.qg2.apps.qualys.com for US2).
+- Full chart reference: https://artifacthub.io/packages/helm/qualys-helm-chart/qualys-tc
+- Cluster sensor install guide: https://docs.qualys.com/en/cs/latest/mergedProjects/cluster_sensor_help/cluster_sensor_usage/install_cluster_sensor.htm
+- Admission controller install guide: https://docs.qualys.com/en/cs/latest/admission_controller/install_adm_ctrl.htm
 
 STANDALONE VM / DOCKER HOST SENSOR DEPLOYMENT:
-For standalone VMs or Docker hosts (not Kubernetes), the Qualys sensor is deployed as a Docker container directly on the host.
+For standalone VMs or Docker hosts (not Kubernetes), the Qualys sensor runs as a Docker container directly on the host. Get the exact command (with your Activation ID and Customer ID embedded) from the Qualys portal: Container Security > Configurations > Sensors > Download Sensor > DOCKERHUB tab.
 
-Basic sensor deployment on a standalone VM:
+General sensor (default mode) on a standalone Docker host:
 ```bash
-docker run -d \
-  --name qualys-cs-sensor \
-  --privileged \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -e ACTIVATIONID=<ACTIVATION_ID> \
-  -e CUSTOMERID=<CUSTOMER_ID> \
-  qualys/qcs-sensor:latest
-```
-
-Enable SCA (Software Composition Analysis) scanning:
-```bash
-docker run -d \
-  --name qualys-cs-sensor \
-  --privileged \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -e ACTIVATIONID=<ACTIVATION_ID> \
-  -e CUSTOMERID=<CUSTOMER_ID> \
+sudo docker run -d --restart on-failure \
+  -v /var/run/docker.sock:/var/run/docker.sock:ro \
+  -v /usr/local/qualys/sensor/data:/usr/local/qualys/qpa/data \
+  -e ACTIVATIONID=<activation id> \
+  -e CUSTOMERID=<customer id> \
+  -e POD_URL=<gateway URL> \
+  --net=host \
+  --name qualys-container-sensor \
   qualys/qcs-sensor:latest \
-  --perform-sca-scan
+  --storage-driver-type=overlay2
 ```
 
-Enable Malware scanning:
+Enable SCA (Software Composition Analysis) scanning — append the sensor arg:
 ```bash
-docker run -d \
-  --name qualys-cs-sensor \
-  --privileged \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -e ACTIVATIONID=<ACTIVATION_ID> \
-  -e CUSTOMERID=<CUSTOMER_ID> \
+sudo docker run -d --restart on-failure \
+  -v /var/run/docker.sock:/var/run/docker.sock:ro \
+  -v /usr/local/qualys/sensor/data:/usr/local/qualys/qpa/data \
+  -e ACTIVATIONID=<activation id> \
+  -e CUSTOMERID=<customer id> \
+  -e POD_URL=<gateway URL> \
+  --net=host \
+  --name qualys-container-sensor \
   qualys/qcs-sensor:latest \
-  --perform-malware-scan
+  --storage-driver-type=overlay2 --perform-sca-scan
 ```
 
-Enable both SCA and Malware scanning together:
-```bash
-docker run -d \
-  --name qualys-cs-sensor \
-  --privileged \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -e ACTIVATIONID=<ACTIVATION_ID> \
-  -e CUSTOMERID=<CUSTOMER_ID> \
-  qualys/qcs-sensor:latest \
-  --perform-sca-scan --perform-malware-scan
-```
+Enable Malware scanning — append `--perform-malware-scan`. Combine both as `--perform-sca-scan --perform-malware-scan`.
 
-- For cluster-based (Kubernetes/OpenShift) deployments, refer to the Helm chart values above — use `deployClusterSensor=true` for posture scanning.
-- Replace <ACTIVATION_ID> and <CUSTOMER_ID> with values from the Qualys portal under Help > About.
+Notes:
+- The `-e POD_URL=<gateway URL>` env var is REQUIRED (your Qualys platform gateway URL).
+- Mount the docker socket read-only (`:ro`) and mount the sensor data volume as shown.
+- `--net=host` is used by default so the sensor can detect its host IP. To comply with CIS Benchmark 5.9, omit `--net=host` (the sensor then cannot detect host IP).
+- `--storage-driver-type=overlay2` matches the host's container storage driver; adjust if using a different driver.
+- For Podman, use `podman run -d --restart on-failure --privileged=true ...` with the podman socket.
+- Reference: https://docs.qualys.com/en/cs-sensor/latest/installing_sensor_from_docker_hub/deploying_on_standalone_docker_host_using_docker_run.htm
+- For cluster-based (Kubernetes/OpenShift) deployments, use the unified Helm chart above (set `qcsSensor.enabled=true` for image/vuln scanning, `clusterSensor.enabled=true` for posture).
 
 QSCANNER KEY COMMANDS (static reference):
 QScanner is the official Qualys CLI for shift-left container scanning in CI/CD pipelines.
@@ -281,6 +405,22 @@ FORMATTING RULES:
 - Always include a link to https://artifacthub.io/packages/helm/qualys-helm-chart/qualys-tc when answering sensor installation questions.
 - Documentation: Qualys CS (https://docs.qualys.com/en/cs/latest/get_started/cs_docs.htm), CS API (https://docs.qualys.com/en/cs/api/), CS User Guide (https://docs.qualys.com/en/cs/), Release Notes (https://www.qualys.com/documentation/release-notes)
 
+REFERENCE LINKS (ALWAYS APPEND AT THE END):
+- End EVERY substantive answer with a short markdown divider `---` followed by a `**References**` heading and a bullet list of 1–4 relevant links, so the user can cross-reference your answer.
+- If you called fetch_docs, list the EXACT URL(s) you fetched as references.
+- Otherwise, include the most relevant links for the topic from LIVE DOCUMENTATION RESOURCES above. Examples:
+  - Sensor / Helm install → ArtifactHub chart (https://artifacthub.io/packages/helm/qualys-helm-chart/qualys-tc) + the relevant docs.qualys.com install page
+  - Vulnerabilities / QQL / filters → https://docs.qualys.com/en/cs/latest/search_tips/search_tokens.htm
+  - API / endpoints → https://docs.qualys.com/en/cs/api/
+  - QScanner / CI-CD → https://docs.qualys.com/en/qscanner/latest/qscanner_usage/qscanner_commands.htm
+  - Fargate / ECS → the Fargate scanning doc URL above
+  - Release notes / new features → https://www.qualys.com/documentation/release-notes
+  - General container security concepts → https://docs.qualys.com/en/cs/ (CS User Guide)
+- For answers built purely from live Qualys API data (containers, images, vulns, registries, clusters, sensors, reports), still append References pointing to the relevant product doc (e.g. CS User Guide) and/or the CS API reference so the user can verify field meanings.
+- Format each reference as a markdown link: `- [Descriptive Title](https://...)`.
+- NEVER invent or guess URLs. Only use URLs that appear in this prompt or that you actually fetched with fetch_docs.
+- Do NOT append References to trivial greetings, identity replies ("who are you?"), or one-line clarifying questions.
+
 TRURISK SCORE:
 - Whenever a user mentions "TruRisk", "TruRisk score", or "risk score" — always map this to the API field `riskScore`.
 - To show images with the highest TruRisk score: call `list_images` with sort=`riskScore:desc`.
@@ -313,11 +453,77 @@ API REFERENCE QUESTIONS:
 - Reference the CS API docs at https://docs.qualys.com/en/cs/api/ for full schema details.
 
 NON-API QUESTIONS:
-- For Helm sensor installation, proxy config, QScanner commands, and Fargate setup — use the static knowledge embedded above. Do NOT call fetch_docs for these; answer directly from the embedded reference.
-- For topics NOT covered in the embedded knowledge above (e.g. advanced compliance policies, specific release note details, product-specific configuration not listed here), use fetch_docs to retrieve content from the relevant Qualys documentation page before answering. Always cite the source URL in your response.
-- If fetch_docs fails or returns a login page / empty content, answer from the embedded knowledge in this prompt and note that the live doc page was inaccessible.
+- For Helm sensor installation, standalone Docker/VM sensor, QScanner commands, Fargate setup, search tokens, CS API reference, and release notes — ALWAYS call fetch_docs FIRST to pull the latest content from the official Qualys docs (see LIVE DOCUMENTATION RESOURCES above), then answer based on what it returns. The knowledge embedded in this prompt is a FALLBACK ONLY.
+- For topics NOT covered by the resources above (e.g. advanced compliance policies, product-specific configuration not listed here), also use fetch_docs to retrieve content from the relevant Qualys documentation page before answering. Always cite the source URL in your response.
+- If fetch_docs fails, returns empty, or returns a login/JavaScript placeholder, THEN fall back to the knowledge embedded in this prompt and tell the user the live doc page was inaccessible so the details may be outdated.
 - When answering questions about release notes or new features, always fetch https://www.qualys.com/documentation/release-notes and reference only the Container Security section — do not mention other Qualys products.
 - If the question is clearly outside Container Security scope entirely, politely redirect the user to https://www.qualys.com/ for other products."""
+
+
+# ---------------------------------------------------------------------------
+# Verified Qualys documentation index (single source of truth).
+# Every URL here has been confirmed to return real content (HTTP 200), not a
+# 404 or an anti-bot page. fetch_docs is restricted to these URLs (plus a few
+# stable reference hosts) so the model NEVER guesses non-existent .htm paths —
+# the #1 cause of the "live documentation unavailable" fallback. To add coverage,
+# verify a URL returns 200 and add it here; it is auto-injected into the prompt.
+# ---------------------------------------------------------------------------
+KNOWN_DOC_URLS: list[tuple[str, str]] = [
+    # Overview / getting started
+    ("Container Security overview", "https://docs.qualys.com/en/cs/latest/about_qualys_cs.htm"),
+    ("CS documentation home", "https://docs.qualys.com/en/cs/latest/get_started/cs_docs.htm"),
+    ("Concepts & terminologies (incl. supported registries list)", "https://docs.qualys.com/en/cs/latest/get_started/concepts.htm"),
+    ("Interoperability matrix (supported registry/sensor versions)", "https://docs.qualys.com/en/cs/latest/get_started/container_security_interoperability_matrix.htm"),
+    # QQL / search
+    ("QQL search tokens", "https://docs.qualys.com/en/cs/latest/search_tips/search_tokens.htm"),
+    # Registries
+    ("Adding a new registry to scan", "https://docs.qualys.com/en/cs/latest/registries/adding_registry.htm"),
+    ("Vulnerability scanning of registries", "https://docs.qualys.com/en/cs/latest/vuln_scans/vulnerability_scanning_of_registries.htm"),
+    # Scanning features
+    ("Compliance scanning", "https://docs.qualys.com/en/cs/latest/compliance_scans/compliance.htm"),
+    ("Malware scans", "https://docs.qualys.com/en/cs/latest/malwares/malware_scans.htm"),
+    ("Detecting container secrets", "https://docs.qualys.com/en/cs/latest/secret_detection/discover_sontainer_secrets.htm"),
+    # Sensor / Helm installation
+    ("Installing sensors (overview)", "https://docs.qualys.com/en/cs/latest/config/install_sensors.htm"),
+    ("Install Cluster Sensor (Helm)", "https://docs.qualys.com/en/cs/latest/mergedProjects/cluster_sensor_help/cluster_sensor_usage/install_cluster_sensor.htm"),
+    ("Install Admission Controller (Helm)", "https://docs.qualys.com/en/cs/latest/admission_controller/install_adm_ctrl.htm"),
+    ("Deploy sensor in Kubernetes using Helm", "https://docs.qualys.com/en/cs-sensor/latest/deploying_sensor_in_k8s/Deploy_in_Kubernetes_using_Helm_Charts.htm"),
+    ("Deploy sensor on standalone Docker host", "https://docs.qualys.com/en/cs-sensor/latest/installing_sensor_from_docker_hub/deploying_on_standalone_docker_host_using_docker_run.htm"),
+    # CI/CD & serverless
+    ("QScanner commands (CI/CD shift-left)", "https://docs.qualys.com/en/qscanner/latest/qscanner_usage/qscanner_commands.htm"),
+    ("Scan images in AWS Fargate (ECS)", "https://docs.qualys.com/en/cs/latest/mergedProjects/cs_sensor_deployment_help/scan_container_images_in_aws_fargate_ecs/scan_container_images_in_aws_fargate_(ecs).htm"),
+    # API
+    ("CS API reference home", "https://docs.qualys.com/en/cs/api/"),
+    ("CS API — fetch image details (malware/secrets/compliance)", "https://docs.qualys.com/en/cs/api/images/fetch_image_details.htm"),
+    # Release notes & Helm chart
+    ("Release notes", "https://www.qualys.com/documentation/release-notes"),
+    ("Unified Helm chart (ArtifactHub)", "https://artifacthub.io/packages/helm/qualys-helm-chart/qualys-tc"),
+]
+
+# Fast lookup set of allowed exact URLs.
+_KNOWN_DOC_URL_SET = {url for _label, url in KNOWN_DOC_URLS}
+
+
+def _doc_index_text() -> str:
+    """Render the verified doc index as a bullet list for prompts/error messages."""
+    return "\n".join(f"- {label}: {url}" for label, url in KNOWN_DOC_URLS)
+
+
+# Inject the verified index + a hard "no guessing" rule into the system prompt so
+# the model only ever fetches real URLs.
+SYSTEM_PROMPT += (
+    "\n\nVERIFIED DOCUMENTATION URLS (fetch_docs ALLOWLIST — use ONLY these):\n"
+    "- You may ONLY call fetch_docs with a URL from the list below, or a URL that a previous "
+    "fetch_docs result explicitly returned to you. NEVER invent, construct, or guess any other "
+    "documentation path — guessed URLs 404 and make you look broken.\n"
+    "- Pick the single closest-matching URL for the user's question. Fetch 2–3 only if the topic "
+    "genuinely spans multiple pages (e.g. Helm install across cluster + admission controller).\n"
+    "- If fetch_docs returns an 'invalid_url' response with a suggestion list, immediately retry "
+    "with the closest URL from that list.\n"
+    "- If none of these pages fit the question, answer from your embedded knowledge and cite the "
+    "closest general page (CS documentation home) — do NOT guess a specific deep URL.\n\n"
+    + _doc_index_text()
+)
 
 
 def _make_client() -> anthropic.AnthropicBedrock:
@@ -363,8 +569,22 @@ _DOCS_TOOL = {
 TOOLS = build_anthropic_tools() + [_DOCS_TOOL]
 
 
-_docs_cache: dict[str, tuple[str, float]] = {}  # url -> (content, expiry_timestamp)
-DOCS_CACHE_TTL = 3600  # 1 hour
+_docs_cache: dict[str, tuple[str, float]] = {}  # url -> (content, fetched_at_timestamp)
+# Stale-while-revalidate windows:
+DOCS_FRESH_TTL = 21600   # 6h — within this, serve cache without revalidating
+DOCS_STALE_TTL = 604800  # 7d — older than this, force a synchronous live re-fetch
+
+# Realistic browser headers — docs.qualys.com/qualys.com sit behind Cloudflare, which
+# blocks requests with a generic/bot User-Agent (returns an "Attention Required"
+# challenge page instead of the doc). A normal browser UA passes.
+_BROWSER_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+}
 
 ALLOWED_DOC_HOSTS = (
     "docs.qualys.com",
@@ -375,41 +595,105 @@ ALLOWED_DOC_HOSTS = (
 )
 
 
-async def _fetch_docs(url: str) -> str:
-    """Fetch plain text from an allowed Qualys docs/Helm page, with in-memory TTL cache."""
+def _strip_html(raw: str) -> str:
+    """Reduce an HTML page to readable plain text (first 8000 chars)."""
     import re
+    text = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", raw, flags=re.S | re.I)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"[ \t]{2,}", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()[:8000]
+
+
+async def _live_fetch_docs(url: str) -> str:
+    """Fetch and parse a page live. Raises on HTTP error or anti-bot/login block."""
+    async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+        resp = await client.get(url, headers=_BROWSER_HEADERS)
+        resp.raise_for_status()
+        raw = resp.text
+        lowered = raw[:4000].lower()
+        if any(marker in lowered for marker in (
+            "attention required", "you have been blocked",
+            "cf-error-details", "enable javascript and cookies to continue",
+        )):
+            raise RuntimeError("blocked by anti-bot protection")
+        return _strip_html(raw)
+
+
+async def _revalidate_docs(url: str) -> None:
+    """Background refresh of a stale cache entry. Updates cache on success, else keeps old copy."""
+    log = logging.getLogger("docs_cache")
+    try:
+        text = await _live_fetch_docs(url)
+        _docs_cache[url] = (text, time.time())
+        log.info("Revalidated: %s (%d chars)", url, len(text))
+    except Exception as e:
+        log.warning("Revalidate failed for %s (keeping cached copy): %s", url, e)
+
+
+async def _fetch_docs(url: str, force: bool = False) -> str:
+    """Fetch plain text from an allowed Qualys docs/Helm page (stale-while-revalidate).
+
+    - Fresh cache (< DOCS_FRESH_TTL): served instantly.
+    - Stale cache (>= DOCS_FRESH_TTL, < DOCS_STALE_TTL): served instantly AND refreshed
+      in the background so the next request gets updated content.
+    - No cache, very old cache, or force=True: fetched live synchronously.
+    - Live failure with any cached copy available: cached copy is served as a fallback.
+    """
     from urllib.parse import urlparse
+    import asyncio
 
     host = urlparse(url).netloc.lstrip("www.")
     if not any(host.endswith(h) for h in ALLOWED_DOC_HOSTS):
         return json.dumps({"error": f"URL not allowed: {url}"})
 
-    cached = _docs_cache.get(url)
-    if cached and time.time() < cached[1]:
-        return cached[0]
+    # Anti-guessing guard: Qualys doc (Flare) paths are unguessable, so restrict
+    # docs.qualys.com / qualys.com fetches to the verified index. Other stable hosts
+    # (artifacthub.io, github.com, qualys.github.io) are allowed as-is.
+    is_qualys_docs = host.endswith("docs.qualys.com") or host.endswith("qualys.com")
+    if is_qualys_docs and url not in _KNOWN_DOC_URL_SET:
+        return json.dumps({
+            "invalid_url": url,
+            "message": (
+                "That URL is not in the verified documentation index and may not exist. "
+                "Retry fetch_docs with the closest matching URL from the list below, or "
+                "answer from your embedded knowledge and cite the CS documentation home."
+            ),
+            "available_urls": _doc_index_text(),
+        })
 
+    now = time.time()
+    cached = _docs_cache.get(url)
+
+    if cached and not force:
+        age = now - cached[1]
+        if age < DOCS_STALE_TTL:
+            # Serve cached content immediately; revalidate in the background if stale.
+            if age >= DOCS_FRESH_TTL:
+                asyncio.create_task(_revalidate_docs(url))
+            return cached[0]
+
+    # No usable cache (or forced / too old): fetch live synchronously.
     try:
-        async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
-            resp = await client.get(url, headers={"User-Agent": "QualysCS-Assistant/1.0"})
-            resp.raise_for_status()
-            text = re.sub(r"<[^>]+>", " ", resp.text)
-            text = re.sub(r"[ \t]{2,}", " ", text)
-            text = re.sub(r"\n{3,}", "\n\n", text)
-            result = text[:8000]
-            _docs_cache[url] = (result, time.time() + DOCS_CACHE_TTL)
-            return result
+        text = await _live_fetch_docs(url)
+        _docs_cache[url] = (text, now)
+        return text
     except Exception as e:
+        if cached:
+            return f"[WARN: live docs unavailable ({e}); using cached copy which may be outdated]\n\n{cached[0]}"
         return json.dumps({"error": str(e)})
 
 
-_PREWARM_URLS = [
-    "https://docs.qualys.com/en/cs/latest/search_tips/search_tokens.htm",
-    "https://artifacthub.io/packages/helm/qualys-helm-chart/qualys-tc",
-    "https://docs.qualys.com/en/qscanner/latest/qscanner_usage/qscanner_commands.htm",
-    "https://docs.qualys.com/en/cs/latest/mergedProjects/cs_sensor_deployment_help/scan_container_images_in_aws_fargate_ecs/scan_container_images_in_aws_fargate_(ecs).htm",
-    "https://docs.qualys.com/en/cs/latest/get_started/cs_docs.htm",
-    "https://docs.qualys.com/en/cs/api/",
-]
+# Pre-fetch the verified doc pages at startup so first queries are instant. Derived
+# from KNOWN_DOC_URLS (single source of truth). The ArtifactHub page is skipped — it's
+# JS-rendered and returns no usable text via fetch_docs (kept only as a link reference).
+_PREWARM_URLS = [url for _label, url in KNOWN_DOC_URLS if "artifacthub.io" not in url]
+
+
+async def _needs_refresh(url: str) -> bool:
+    """Return True if the URL is missing or its cached copy is older than the fresh window."""
+    cached = _docs_cache.get(url)
+    return not cached or (time.time() - cached[1]) >= DOCS_FRESH_TTL
 
 
 async def prewarm_docs_cache() -> None:
@@ -422,8 +706,23 @@ async def prewarm_docs_cache() -> None:
     for url, result in zip(_PREWARM_URLS, results):
         if isinstance(result, Exception):
             logger.warning("Cache prewarm failed for %s: %s", url, result)
+        elif isinstance(result, str) and result.lstrip().startswith('{"error"'):
+            logger.warning("Cache prewarm error for %s: %s", url, result[:200])
         else:
-            logger.info("Cached: %s", url)
+            logger.info("Cached: %s (%d chars)", url, len(result))
+
+
+async def refresh_docs_cache() -> tuple[int, int]:
+    """Force-refresh all pre-warmed doc pages. Returns (succeeded, failed) counts."""
+    import asyncio
+    import logging
+    logger = logging.getLogger("docs_cache")
+    logger.info("Force-refreshing docs cache for %d URLs...", len(_PREWARM_URLS))
+    results = await asyncio.gather(*[_fetch_docs(url, force=True) for url in _PREWARM_URLS], return_exceptions=True)
+    succeeded = sum(1 for r in results if not isinstance(r, Exception))
+    failed = len(results) - succeeded
+    logger.info("Docs refresh complete: %d succeeded, %d failed", succeeded, failed)
+    return succeeded, failed
 
 
 async def _call_qualys_tool(name: str, inputs: dict) -> str:

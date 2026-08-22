@@ -15,11 +15,11 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from routes.dashboard import router as dashboard_router
 from routes.chat import router as chat_router
-from agent import prewarm_docs_cache
+from agent import prewarm_docs_cache, refresh_docs_cache
 
 app = FastAPI(title="Qualys CS Intelligence", version="1.0.0")
 
@@ -43,3 +43,10 @@ app.include_router(chat_router)
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.post("/docs/refresh")
+async def refresh_docs(background_tasks: BackgroundTasks):
+    """Trigger a background refresh of the docs cache."""
+    background_tasks.add_task(refresh_docs_cache)
+    return {"message": "Docs cache refresh started"}

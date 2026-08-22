@@ -11,7 +11,7 @@ fi
 
 echo "==> Installing backend dependencies..."
 cd "$SCRIPT_DIR/backend"
-pip install -q -r requirements.txt
+pip3 install -q -r requirements.txt
 
 echo "==> Installing frontend dependencies..."
 cd "$SCRIPT_DIR/frontend"
@@ -19,7 +19,7 @@ npm install --silent
 
 echo "==> Starting FastAPI backend on port 8000..."
 cd "$SCRIPT_DIR/backend"
-uvicorn main:app --reload --port 8000 >> "$SCRIPT_DIR/backend.log" 2>&1 &
+python3 -m uvicorn main:app --reload --port 8000 >> "$SCRIPT_DIR/backend.log" 2>&1 &
 BACKEND_PID=$!
 
 echo "==> Starting React frontend on port 5173..."
