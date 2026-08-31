@@ -1,7 +1,7 @@
 # .github/workflows/qscanner-scan.yml
 #
-# Scans a container image with Qualys QScanner during CI and publishes
-# the results to GitHub's Security > Code scanning tab.
+# Scans a container image with Qualys QScanner during CI and prints
+# vulnerability findings to the workflow console/logs.
 #
 # Setup required before this workflow will run successfully:
 #   1. Create a Qualys access token: Qualys Platform > Configurations > Access Token
@@ -9,8 +9,6 @@
 #      (Settings > Secrets and variables > Actions > New repository secret)
 #   3. Set QSCANNER_POD below to your Qualys platform POD (e.g. US1, US3, EU1).
 #      See "Appendix: POD Identifiers" in the QScanner docs for the full list.
-#   4. Update the "Download QScanner" step with the actual download URL/method
-#      for your account (see https://www.qualys.com/downloads/qscanner).
 
 name: QScanner Container Security Scan
 
@@ -23,7 +21,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write   # required to upload SARIF results
 
 env:
   IMAGE_NAME: anmol-qscanner-repo-scan
@@ -47,27 +44,9 @@ jobs:
           chmod +x download_qscanner.sh
           ./download_qscanner.sh
 
-      # Step 4: Scan the locally built image and generate a SARIF report
+      # Step 4: Scan the locally built image and print results to the console
       - name: Scan image with QScanner
         env:
           QUALYS_ACCESS_TOKEN: ${{ secrets.QUALYS_ACCESS_TOKEN }}
         run: |
-          ./linux-amd64/qscanner --pod "${{ env.QSCANNER_POD }}" image "${{ env.IMAGE_NAME }}:${{ github.sha }}" \
-            --report-format sarif
-
-      # QScanner names the report file dynamically, so locate it before upload
-      - name: Locate SARIF report
-        id: locate_sarif
-        run: |
-          REPORT_PATH=$(find . -maxdepth 4 -iname "*Report.sarif.json" | head -n 1)
-          if [ -z "$REPORT_PATH" ]; then
-            echo "No SARIF report found" >&2
-            exit 1
-          fi
-          echo "path=$REPORT_PATH" >> "$GITHUB_OUTPUT"
-
-      # Step 5: Upload the SARIF report so findings show up under Security > Code scanning
-      - name: Upload SARIF report to GitHub
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: ${{ steps.locate_sarif.outputs.path }}
+          ./linux-amd64/qscanner --pod "${{ env.QSCANNER_POD }}" image "${{ env.IMAGE_NAME }}:${{ github.sha }}"
