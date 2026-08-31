@@ -1,13 +1,16 @@
 # .github/workflows/qscanner-scan.yml
 #
-# Scans a container image with Qualys QScanner during CI and publishes
-# the results to GitHub's Security > Code scanning tab.
+# Scans source code and a container image with Qualys QScanner during CI,
+# and publishes the image scan results to GitHub's Security > Code scanning tab.
 #
 # Setup required before this workflow will run successfully:
-#   1. Create a Qualys access token: Qualys Platform > Configurations > Access Token
-#   2. Add it as a repo secret named QUALYS_ACCESS_TOKEN
+#   1. Image scan auth: Create a Qualys access token: Qualys Platform > Configurations > Access Token
+#      Add it as a repo secret named QUALYS_ACCESS_TOKEN
+#   2. Code scan auth: Create a Qualys API client-id/client-secret (Configurations > API Keys,
+#      or as issued for your Code-to-Cloud gateway).
+#      Add them as repo secrets named QUALYS_CLIENT_ID and QUALYS_CLIENT_SECRET
 #      (Settings > Secrets and variables > Actions > New repository secret)
-#   3. Set QSCANNER_POD below to your Qualys platform POD (e.g. US1, US3, EU1).
+#   3. Set QSCANNER_POD and QSCANNER_GATEWAY_URL below to match your Qualys platform.
 #      See "Appendix: POD Identifiers" in the QScanner docs for the full list.
 
 name: QScanner Container Security Scan
@@ -27,6 +30,7 @@ permissions:
 env:
   IMAGE_NAME: anmol-qscanner-repo-scan
   QSCANNER_POD: CA1
+  QSCANNER_GATEWAY_URL: https://gateway.qg2.apps.qualys.com   # <-- change to match your account's gateway
 
 jobs:
   build-and-scan:
@@ -37,18 +41,36 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 1-2: Build code and produce the container image artifact
-      - name: Build Docker image
-        run: docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} ./backend
-
-      # Step 3: Download the QScanner binary onto the runner
+      # Step 1: Download the QScanner binary onto the runner (needed for both scans below)
       - name: Download QScanner
         run: |
           curl -sSL -o download_qscanner.sh "https://www.qualys.com/qscanner/download/latest/download_qscanner.sh"
           chmod +x download_qscanner.sh
           ./download_qscanner.sh
 
-      # Step 4: Scan the locally built image and generate a SARIF report
+      # Step 2: Scan the source code FIRST — dependency + compliance scan,
+      # before anything is built. Uses client-id/secret + gateway-url auth,
+      # since this talks to the Code-to-Cloud gateway rather than the
+      # pod/access-token endpoint used for image scanning below.
+      - name: Code scan with QScanner
+        env:
+          QUALYS_CLIENT_ID: ${{ secrets.QUALYS_CLIENT_ID }}
+          QUALYS_CLIENT_SECRET: ${{ secrets.QUALYS_CLIENT_SECRET }}
+        run: |
+          ./linux-amd64/qscanner \
+            --gateway-url "${{ env.QSCANNER_GATEWAY_URL }}" \
+            --client-id "$QUALYS_CLIENT_ID" \
+            --client-secret "$QUALYS_CLIENT_SECRET" \
+            code "${{ github.server_url }}/${{ github.repository }}.git" \
+            --scan-types sca,compliance \
+            --compliance-benchmarks AI_NIST_RMF,AI_EU_ACT,AI_PCI_DSS \
+            --skip-verify-tls
+
+      # Step 3: Build the container image AFTER the code scan passes
+      - name: Build Docker image
+        run: docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} ./backend
+
+      # Step 4: Scan the built image and generate a SARIF report
       - name: Scan image with QScanner
         env:
           QUALYS_ACCESS_TOKEN: ${{ secrets.QUALYS_ACCESS_TOKEN }}
