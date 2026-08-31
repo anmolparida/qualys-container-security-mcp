@@ -26,7 +26,7 @@ permissions:
 
 env:
   IMAGE_NAME: myapp
-  QSCANNER_POD: US3         # <-- change to your Qualys POD
+  QSCANNER_POD: "CA1"         # <-- change to your Qualys POD
 
 jobs:
   build-and-scan:
@@ -42,7 +42,7 @@ jobs:
       # Step 3: Download the QScanner binary onto the runner
       - name: Download QScanner
         run: |
-          curl -sSL -o download_qscanner.sh "https://<your-qscanner-download-url>"
+          curl -sSL -o download_qscanner.sh "https://www.qualys.com/qscanner/download/latest/download_qscanner.sh
           chmod +x download_qscanner.sh
           ./download_qscanner.sh
 
