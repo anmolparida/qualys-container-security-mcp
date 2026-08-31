@@ -16,7 +16,7 @@ name: QScanner Container Security Scan
 
 on:
   push:
-    branches: [ main ]
+    branches:  [ main, qscanner-github-repo-scan ]
   pull_request:
     branches: [ main ]
 
