@@ -38,7 +38,7 @@ jobs:
 
       # Step 1-2: Build code and produce the container image artifact
       - name: Build Docker image
-        run: docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
+        run: docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} ./backend
 
       # Step 3: Download the QScanner binary onto the runner
       - name: Download QScanner
