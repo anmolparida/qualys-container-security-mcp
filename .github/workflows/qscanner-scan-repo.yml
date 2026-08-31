@@ -28,7 +28,7 @@ permissions:
   # actions: read            # only needed if SARIF upload step below is re-enabled
 
 env:
-  IMAGE_NAME: anmol-qscanner-repo-scan
+  IMAGE_NAME: anmol-code-scan
   QSCANNER_GATEWAY_URL: https://gateway.qg2.apps.qualys.com
 
 jobs:
