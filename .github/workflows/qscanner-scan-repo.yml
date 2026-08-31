@@ -30,7 +30,7 @@ permissions:
 env:
   IMAGE_NAME: anmol-qscanner-repo-scan
   QSCANNER_POD: CA1
-  QSCANNER_GATEWAY_URL: https://gateway.qg2.apps.qualys.com   # <-- change to match your account's gateway
+  QSCANNER_GATEWAY_URL: https://gateway.qg1.apps.qualys.ca   # <-- change to match your account's gateway
 
 jobs:
   build-and-scan:
