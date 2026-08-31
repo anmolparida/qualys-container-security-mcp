@@ -22,6 +22,7 @@ on:
 permissions:
   contents: read
   security-events: write   # required to upload SARIF results
+  actions: read            # required by upload-sarif to fetch workflow-run info for fingerprinting
 
 env:
   IMAGE_NAME: anmol-qscanner-repo-scan
@@ -30,6 +31,8 @@ env:
 jobs:
   build-and-scan:
     runs-on: ubuntu-latest
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
