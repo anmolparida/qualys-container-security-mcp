@@ -4,14 +4,11 @@
 # and publishes the image scan results to GitHub's Security > Code scanning tab.
 #
 # Setup required before this workflow will run successfully:
-#   1. Image scan auth: Create a Qualys access token: Qualys Platform > Configurations > Access Token
-#      Add it as a repo secret named QUALYS_ACCESS_TOKEN
-#   2. Code scan auth: Create a Qualys API client-id/client-secret (Configurations > API Keys,
+#   1. Create a Qualys API client-id/client-secret (Configurations > API Keys,
 #      or as issued for your Code-to-Cloud gateway).
 #      Add them as repo secrets named QUALYS_CLIENT_ID and QUALYS_CLIENT_SECRET
 #      (Settings > Secrets and variables > Actions > New repository secret)
-#   3. Set QSCANNER_POD and QSCANNER_GATEWAY_URL below to match your Qualys platform.
-#      See "Appendix: POD Identifiers" in the QScanner docs for the full list.
+#   2. Set QSCANNER_GATEWAY_URL below to match your Qualys account's gateway.
 
 name: QScanner Container Security Scan
 
@@ -29,8 +26,7 @@ permissions:
 
 env:
   IMAGE_NAME: anmol-qscanner-repo-scan
-  QSCANNER_POD: CA1
-  QSCANNER_GATEWAY_URL: https://gateway.qg1.apps.qualys.ca   # <-- change to match your account's gateway
+  QSCANNER_GATEWAY_URL: https://gateway.qg2.apps.qualys.com   # <-- change to match your account's gateway
 
 jobs:
   build-and-scan:
@@ -49,9 +45,10 @@ jobs:
           ./download_qscanner.sh
 
       # Step 2: Scan the source code FIRST — dependency + compliance scan,
-      # before anything is built. Uses client-id/secret + gateway-url auth,
-      # since this talks to the Code-to-Cloud gateway rather than the
-      # pod/access-token endpoint used for image scanning below.
+      # before anything is built. Scans the already-checked-out local
+      # workspace (avoids re-cloning, which fails auth on private repos).
+      # Uses client-id/secret + gateway-url auth, since this talks to the
+      # Code-to-Cloud gateway rather than the pod/access-token endpoint.
       - name: Code scan with QScanner
         env:
           QUALYS_CLIENT_ID: ${{ secrets.QUALYS_CLIENT_ID }}
@@ -61,7 +58,7 @@ jobs:
             --gateway-url "${{ env.QSCANNER_GATEWAY_URL }}" \
             --client-id "$QUALYS_CLIENT_ID" \
             --client-secret "$QUALYS_CLIENT_SECRET" \
-            code "${{ github.server_url }}/${{ github.repository }}.git" \
+            code "${{ github.workspace }}" \
             --scan-types sca,compliance \
             --compliance-benchmarks AI_NIST_RMF,AI_EU_ACT,AI_PCI_DSS \
             --skip-verify-tls
@@ -73,9 +70,15 @@ jobs:
       # Step 4: Scan the built image and generate a SARIF report
       - name: Scan image with QScanner
         env:
-          QUALYS_ACCESS_TOKEN: ${{ secrets.QUALYS_ACCESS_TOKEN }}
+          QUALYS_CLIENT_ID: ${{ secrets.QUALYS_CLIENT_ID }}
+          QUALYS_CLIENT_SECRET: ${{ secrets.QUALYS_CLIENT_SECRET }}
         run: |
-          ./linux-amd64/qscanner --pod "${{ env.QSCANNER_POD }}" image "${{ env.IMAGE_NAME }}:${{ github.sha }}" \
+          ./linux-amd64/qscanner \
+            --gateway-url "${{ env.QSCANNER_GATEWAY_URL }}" \
+            --client-id "$QUALYS_CLIENT_ID" \
+            --client-secret "$QUALYS_CLIENT_SECRET" \
+            --skip-verify-tls \
+            image "${{ env.IMAGE_NAME }}:${{ github.sha }}" \
             --report-format sarif
 
       # QScanner writes reports to ~/qualys/qscanner/data/, not the working directory
