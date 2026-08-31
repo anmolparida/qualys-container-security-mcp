@@ -16,17 +16,18 @@ name: QScanner Container Security Scan
 
 on:
   push:
-    branches:  [ main, qscanner-github-repo-scan ]
+    branches: [ main, qscanner-github-repo-scan ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:   # adds a manual "Run workflow" button in the Actions tab
 
 permissions:
   contents: read
   security-events: write   # required to upload SARIF results
 
 env:
-  IMAGE_NAME: myapp
-  QSCANNER_POD: "CA1"         # <-- change to your Qualys POD
+  IMAGE_NAME: anmol-qscanner-repo-scan
+  QSCANNER_POD: CA1
 
 jobs:
   build-and-scan:
@@ -42,7 +43,7 @@ jobs:
       # Step 3: Download the QScanner binary onto the runner
       - name: Download QScanner
         run: |
-          curl -sSL -o download_qscanner.sh "https://www.qualys.com/qscanner/download/latest/download_qscanner.sh
+          curl -sSL -o download_qscanner.sh "https://www.qualys.com/qscanner/download/latest/download_qscanner.sh"
           chmod +x download_qscanner.sh
           ./download_qscanner.sh
 
