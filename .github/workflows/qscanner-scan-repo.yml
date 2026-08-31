@@ -52,7 +52,7 @@ jobs:
         env:
           QUALYS_ACCESS_TOKEN: ${{ secrets.QUALYS_ACCESS_TOKEN }}
         run: |
-          ./qscanner --pod "${{ env.QSCANNER_POD }}" image "${{ env.IMAGE_NAME }}:${{ github.sha }}" \
+          ./linux-amd64/qscanner --pod "${{ env.QSCANNER_POD }}" image "${{ env.IMAGE_NAME }}:${{ github.sha }}" \
             --report-format sarif
 
       # QScanner names the report file dynamically, so locate it before upload
