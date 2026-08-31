@@ -13,7 +13,7 @@
 #      (Settings > Secrets and variables > Actions > New repository secret)
 #   2. Set QSCANNER_GATEWAY_URL below to match your Qualys account's gateway.
 
-name: QScanner Container Security Scan
+name: QScanner Container Security Scan -- Code
 
 on:
   push:
