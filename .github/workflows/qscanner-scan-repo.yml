@@ -53,15 +53,17 @@ jobs:
           ./linux-amd64/qscanner --pod "${{ env.QSCANNER_POD }}" image "${{ env.IMAGE_NAME }}:${{ github.sha }}" \
             --report-format sarif
 
-      # QScanner names the report file dynamically, so locate it before upload
+      # QScanner writes reports to ~/qualys/qscanner/data/, not the working directory
       - name: Locate SARIF report
         id: locate_sarif
         run: |
-          REPORT_PATH=$(find . -maxdepth 4 -iname "*Report.sarif.json" | head -n 1)
+          REPORT_PATH=$(find "$HOME" -maxdepth 6 -iname "*Report.sarif.json" 2>/dev/null | head -n 1)
           if [ -z "$REPORT_PATH" ]; then
-            echo "No SARIF report found" >&2
+            echo "No SARIF report found — searched under \$HOME" >&2
+            find "$HOME" -iname "*sarif*" 2>/dev/null
             exit 1
           fi
+          echo "Found: $REPORT_PATH"
           echo "path=$REPORT_PATH" >> "$GITHUB_OUTPUT"
 
       # Step 5: Upload the SARIF report so findings show up under Security > Code scanning
