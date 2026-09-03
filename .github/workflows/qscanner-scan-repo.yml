@@ -29,7 +29,7 @@ permissions:
 
 env:
   IMAGE_NAME: anmol-code-scan
-  QSCANNER_GATEWAY_URL: https://gateway.qg2.apps.qualys.com
+  QSCANNER_GATEWAY_URL: https://gateway.p01.eng.sjc01.qualys.com
 
 jobs:
   build-and-scan:
