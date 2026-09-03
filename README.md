@@ -1,4 +1,4 @@
-# Qualys KCS — AI Security Intelligence Platform
+# Qualys KCS — AI Security Intelligence Platform  
 
 **Sheldon** is an AI assistant for Qualys Kubernetes & Container Security. You type a question in plain English — Sheldon calls the right Qualys API, fetches live data from your environment, and returns an answer in seconds.
 
