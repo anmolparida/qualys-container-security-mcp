@@ -71,8 +71,7 @@ jobs:
       # Step 4: Scan the built image and generate a SARIF report
       - name: Scan image with QScanner
         env:
-          QUALYS_CLIENT_ID: ${{ secrets.QUALYS_CLIENT_ID }}
-          QUALYS_CLIENT_SECRET: ${{ secrets.QUALYS_CLIENT_SECRET }}
+          QUALYS_ACCESS_TOKEN: ${{ secrets.QUALYS_ACCESS_TOKEN }}
         run: |
           ./linux-amd64/qscanner \
             --gateway-url "${{ env.QSCANNER_GATEWAY_URL }}" \
