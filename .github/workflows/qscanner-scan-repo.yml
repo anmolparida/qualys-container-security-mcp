@@ -29,7 +29,7 @@ permissions:
 
 env:
   IMAGE_NAME: anmol-code-scan
-  QSCANNER_GATEWAY_URL: https://gateway.p01.eng.sjc01.qualys.com
+  QSCANNER_GATEWAY_URL: https://gateway.qg1.apps.qualys.co.uk
 
 jobs:
   build-and-scan:
@@ -54,13 +54,11 @@ jobs:
       # Code-to-Cloud gateway rather than the pod/access-token endpoint.
       - name: Code scan with QScanner
         env:
-          QUALYS_CLIENT_ID: ${{ secrets.QUALYS_CLIENT_ID }}
-          QUALYS_CLIENT_SECRET: ${{ secrets.QUALYS_CLIENT_SECRET }}
+          QUALYS_ACCESS_TOKEN: ${{ secrets.QUALYS_ACCESS_TOKEN }}
         run: |
           ./linux-amd64/qscanner \
             --gateway-url "${{ env.QSCANNER_GATEWAY_URL }}" \
-            --client-id "$QUALYS_CLIENT_ID" \
-            --client-secret "$QUALYS_CLIENT_SECRET" \
+            --access-token "$QUALYS_ACCESS_TOKEN" \
             code "${{ github.workspace }}" \
             --scan-types sca,compliance \
             --compliance-benchmarks AI_NIST_RMF,AI_EU_ACT,AI_PCI_DSS \
