@@ -58,7 +58,8 @@ jobs:
         run: |
           ./linux-amd64/qscanner \
             --gateway-url "${{ env.QSCANNER_GATEWAY_URL }}" \
-            --access-token "$QUALYS_ACCESS_TOKEN" \
+            --client-id "$QUALYS_CLIENT_ID" \
+            --client-secret "$QUALYS_CLIENT_SECRET" \
             code "${{ github.workspace }}" \
             --scan-types sca,compliance \
             --compliance-benchmarks AI_NIST_RMF,AI_EU_ACT,AI_PCI_DSS \
