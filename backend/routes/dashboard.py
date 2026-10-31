@@ -206,6 +206,8 @@ async def sensors_overview():
 import asyncio
 import time
 
+import httpx
+
 from fastapi import HTTPException
 
 from qualys_client import cache_scope, get_async
@@ -232,7 +234,8 @@ THREAT_INTEL = [
 _TI_KEYS = {k for k, *_ in THREAT_INTEL}
 _TI_CACHE: dict[tuple, tuple[float, object]] = {}
 _TI_TTL = 300          # seconds; per Qualys account
-_TI_CONCURRENCY = 4    # parallel Qualys calls per page load (stay gentle on rate limits)
+_TI_CONCURRENCY = 2    # parallel Qualys calls per page load (stay gentle on rate limits)
+_TI_RETRIES = 3        # retries on 429 / 5xx / timeouts, with backoff
 
 
 def _cached(key: tuple):
@@ -304,23 +307,55 @@ async def threat_intel_overview():
     sem = asyncio.Semaphore(_TI_CONCURRENCY)
     probe_size = 200  # used only if the API returns no total count
 
+    async def fetch(key):
+        """One category count, retrying rate limits / transient errors with backoff."""
+        delay = 1.0
+        for attempt in range(_TI_RETRIES + 1):
+            try:
+                return await get_async("/vulnerability", {"filter": f"threatIntel.{key}:true", "pageSize": probe_size})
+            except httpx.HTTPStatusError as e:
+                code = e.response.status_code
+                if code in (429, 500, 502, 503, 504) and attempt < _TI_RETRIES:
+                    retry_after = e.response.headers.get("Retry-After", "")
+                    wait = float(retry_after) if retry_after.replace(".", "", 1).isdigit() else delay
+                    logger.info(f"threat-intel {key}: HTTP {code}, retrying in {min(wait, 10):.1f}s")
+                    await asyncio.sleep(min(wait, 10))
+                    delay *= 2
+                    continue
+                raise
+            except (httpx.TimeoutException, httpx.TransportError):
+                if attempt < _TI_RETRIES:
+                    await asyncio.sleep(delay)
+                    delay *= 2
+                    continue
+                raise
+
     async def one(key, label, desc, group):
         async with sem:
             try:
-                data = await get_async("/vulnerability", {"filter": f"threatIntel.{key}:true", "pageSize": probe_size})
+                data = await fetch(key)
                 count, capped = _total(data, probe_size)
                 return {"key": key, "label": label, "description": desc, "group": group,
                         "count": count, "capped": capped, "error": None}
-            except Exception as e:  # one failing category shouldn't break the page
-                logger.warning(f"threat-intel {key}: {type(e).__name__}")
+            except httpx.HTTPStatusError as e:  # one failing category shouldn't break the page
+                code = e.response.status_code
+                reason = {429: "rate limited by Qualys", 400: "filter not supported on this platform"}.get(code, "")
+                logger.warning(f"threat-intel {key}: HTTP {code} {e.response.text[:200]}")
                 return {"key": key, "label": label, "description": desc, "group": group,
-                        "count": None, "capped": False, "error": str(e)[:200]}
+                        "count": None, "capped": False, "error": f"HTTP {code}{' - ' + reason if reason else ''}"}
+            except Exception as e:
+                logger.warning(f"threat-intel {key}: {type(e).__name__}: {e}")
+                return {"key": key, "label": label, "description": desc, "group": group,
+                        "count": None, "capped": False, "error": f"{type(e).__name__}: {str(e)[:150]}"}
 
     results = await asyncio.gather(*(one(*t) for t in THREAT_INTEL))
     auth_errors = [r for r in results if r["error"] and ("401" in r["error"] or "rejected" in r["error"].lower())]
     if auth_errors and len(auth_errors) == len(results):
         raise HTTPException(status_code=401, detail="Qualys rejected the credentials")
-    return _store(("ti-overview", scope), {"categories": list(results), "cached_for_seconds": _TI_TTL})
+    body = {"categories": list(results), "cached_for_seconds": _TI_TTL}
+    if any(r["error"] for r in results):
+        return body  # don't cache partial failures: Refresh retries them right away
+    return _store(("ti-overview", scope), body)
 
 
 @router.get("/threat-intel/{key}")

@@ -81,7 +81,7 @@ export default function QualysSignIn({ needQualys, needLlm, initial, initialLlm,
     }
   }
 
-  const field = 'w-full rounded-lg px-3 py-2 text-sm outline-none border focus:ring-2 focus:ring-blue-500'
+  const field = 'w-full rounded-lg px-3 py-2 text-sm outline-none border focus:ring-2 focus:ring-[var(--brand)]'
   const fieldStyle = { background: 'var(--bg-base)', borderColor: 'var(--border)', color: 'var(--text-primary)' }
   const label = 'block text-xs font-semibold mb-1'
   const section = 'text-[11px] font-semibold uppercase tracking-widest mb-2'
@@ -95,7 +95,7 @@ export default function QualysSignIn({ needQualys, needLlm, initial, initialLlm,
           </button>
         )}
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center"><KeyRound size={18} className="text-white" /></div>
+          <div className="w-10 h-10 rounded-full bg-[var(--brand)] flex items-center justify-center"><KeyRound size={18} className="text-white" /></div>
           <div>
             <h2 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>Sign in</h2>
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -127,7 +127,7 @@ export default function QualysSignIn({ needQualys, needLlm, initial, initialLlm,
             <div className="flex gap-2 mb-3" role="radiogroup" aria-label="AI provider">
               {([['anthropic', 'Anthropic API key'], ['bedrock', 'Amazon Bedrock API key']] as const).map(([v, text]) => (
                 <button key={v} type="button" role="radio" aria-checked={provider === v} onClick={() => setProvider(v)}
-                  className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold border ${provider === v ? 'bg-blue-600 text-white border-blue-600' : ''}`}
+                  className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold border ${provider === v ? 'bg-[var(--brand)] text-white border-[var(--brand)]' : ''}`}
                   style={provider === v ? undefined : fieldStyle}>
                   {text}
                 </button>
@@ -155,7 +155,7 @@ export default function QualysSignIn({ needQualys, needLlm, initial, initialLlm,
 
         {error && <p className="mt-3 text-xs text-red-500" role="alert">{error}</p>}
 
-        <button type="submit" disabled={busy || !qualysOk || !llmOk} className="mt-5 w-full flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-semibold py-2.5">
+        <button type="submit" disabled={busy || !qualysOk || !llmOk} className="mt-5 w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--brand)] hover:bg-[var(--brand-hover)] disabled:opacity-50 text-white text-sm font-semibold py-2.5">
           {busy && <Loader2 size={15} className="animate-spin" />}
           {busy ? 'Checking…' : 'Sign in'}
         </button>

@@ -29,7 +29,7 @@ export default function ChartExport({ title, filename = 'chart.svg', children }:
         {title && <h3 className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>{title}</h3>}
         <button
           onClick={exportSVG}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border hover:border-blue-500 transition-colors ml-auto"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border hover:border-[var(--brand)] transition-colors ml-auto"
           style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
           title="Download SVG"
         >

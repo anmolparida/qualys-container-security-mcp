@@ -1,0 +1,26 @@
+# HTTPS in front of the app on a single EC2 instance.
+#   SITE_ADDRESS  your DNS name (real certificate from Let's Encrypt)
+#                 or the instance IP / :443 (self-signed certificate, browser warning)
+#   TLS_DIRECTIVE "tls internal" for self-signed, empty for Let's Encrypt
+{$SITE_ADDRESS} {
+	{$TLS_DIRECTIVE}
+
+	encode gzip
+
+	# MCP server (per-user Qualys URL + token in headers)
+	handle /mcp* {
+		reverse_proxy mcp:8080 {
+			flush_interval -1
+		}
+	}
+	handle /healthz {
+		reverse_proxy mcp:8080
+	}
+
+	# Web app (UI + API); flush so chat answers stream
+	handle {
+		reverse_proxy web:8000 {
+			flush_interval -1
+		}
+	}
+}

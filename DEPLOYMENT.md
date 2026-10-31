@@ -1,5 +1,7 @@
 # Deploying to AWS (ECS Fargate)
 
+> For a quick, temporary team setup on a single EC2 instance, see [deploy/ec2/README.md](deploy/ec2/README.md).
+
 This deploys **both** parts of the project behind one HTTPS load balancer:
 
 | Path | Service | Whose Qualys data | AWS permissions |

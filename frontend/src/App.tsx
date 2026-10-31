@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Container, ImageIcon, Database, Network, Zap, Sun, Moon, ExternalLink, Info, X, KeyRound, LogOut, ShieldAlert } from 'lucide-react'
+import { Container, ImageIcon, Database, Network, Zap, Sun, Moon, ExternalLink, Info, X, KeyRound, LogOut, ShieldAlert, HelpCircle, LayoutGrid, ShieldCheck } from 'lucide-react'
 import ThreatIntel from './pages/ThreatIntel'
 import QualysSignIn from './components/QualysSignIn'
 import { fetchConfig, type AuthMode, type LlmBilling } from './lib/api'
@@ -12,6 +12,19 @@ import RegistryHealth from './pages/RegistryHealth'
 import K8sPosture from './pages/K8sPosture'
 import Chat from './pages/Chat'
 import { useTheme } from './context/ThemeContext'
+
+/** Brand mark: shows public/brand-logo.svg if you add your official logo, else a neutral shield. */
+function BrandMark() {
+  const [failed, setFailed] = useState(false)
+  if (!failed) {
+    return <img src="/brand-logo.svg" alt="" className="h-6 w-auto" onError={() => setFailed(true)} />
+  }
+  return (
+    <span className="w-7 h-7 rounded-md flex items-center justify-center" style={{ background: 'var(--brand)' }}>
+      <ShieldCheck size={16} className="text-white" />
+    </span>
+  )
+}
 
 type Tab = 'containers' | 'images' | 'threat' | 'registry' | 'k8s' | 'chat'
 
@@ -66,31 +79,46 @@ export default function App() {
   const showAccount = (needQualys && creds) || (needLlm && llm)
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-base)' }}>
-      {/* Sidebar */}
-      <aside className="w-60 flex flex-col flex-shrink-0" style={{ background: 'var(--sidebar-bg)', borderRight: '1px solid var(--border)' }}>
-        <div className="p-5">
-          <button onClick={() => setTab('chat')} className="flex items-center gap-3 w-full text-left hover:opacity-80 transition-opacity">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-900/30">
-              <Zap size={18} className="text-white" fill="white" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-white tracking-tight">Qualys KCS</p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Intelligence Platform</p>
-            </div>
+    <div className="flex flex-col h-screen overflow-hidden" style={{ background: 'var(--bg-base)' }}>
+      {/* Top bar (Qualys console style) */}
+      <header className="h-12 flex items-center justify-between px-4 border-b flex-shrink-0" style={{ background: 'var(--header-bg)', borderColor: 'var(--border)' }}>
+        <button onClick={() => setTab('chat')} className="flex items-center gap-2.5 hover:opacity-80" title="Home">
+          <BrandMark />
+          <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Sheldon</span>
+          <span className="hidden sm:inline text-xs pl-2.5 border-l" style={{ color: 'var(--text-muted)', borderColor: 'var(--border)' }}>AI Assistant</span>
+        </button>
+        <div className="flex items-center gap-1">
+          <a href="https://docs.qualys.com/en/cs/latest/" target="_blank" rel="noopener noreferrer" title="Help" className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[var(--bg-secondary-alpha)]" style={{ color: 'var(--brand)' }}>
+            <HelpCircle size={18} />
+          </a>
+          <button onClick={toggle} title={dark ? 'Light mode' : 'Dark mode'} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[var(--bg-secondary-alpha)]" style={{ color: 'var(--brand)' }}>
+            {dark ? <Sun size={17} /> : <Moon size={17} />}
           </button>
+          {showAccount && (
+            <button onClick={() => setSignIn({ open: true })} title={creds?.url ?? 'Account'} className="ml-1 h-8 min-w-8 px-2 flex items-center justify-center rounded-full border text-xs font-semibold" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
+              {creds ? accountLabel(creds).toUpperCase() : 'AI'}
+            </button>
+          )}
+        </div>
+      </header>
+
+      <div className="flex flex-1 overflow-hidden">
+      {/* Sidebar */}
+      <aside className="w-56 flex flex-col flex-shrink-0" style={{ background: 'var(--sidebar-bg)', color: 'var(--sidebar-text)' }}>
+        <div className="px-4 py-4 flex items-center gap-3 border-b" style={{ borderColor: 'var(--sidebar-border)' }}>
+          <LayoutGrid size={18} />
+          <p className="text-sm font-bold leading-tight">Container Security</p>
         </div>
 
-        <nav className="flex-1 px-3 py-2 space-y-1">
+        <nav className="flex-1 py-2">
           {NAV.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setTab(id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                tab === id
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-900/30'
-                  : 'text-slate-400 hover:text-white hover:bg-[var(--bg-secondary-alpha)]'
+              className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors border-l-[3px] ${
+                tab === id ? 'border-white' : 'border-transparent hover:bg-[var(--sidebar-hover)]'
               }`}
+              style={tab === id ? { background: 'var(--sidebar-active)', color: '#fff' } : { color: 'var(--sidebar-text)' }}
             >
               <Icon size={17} />
               {label}
@@ -98,8 +126,8 @@ export default function App() {
           ))}
         </nav>
 
-        <div className="px-3 pb-2 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
-          <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Resources</p>
+        <div className="px-2 pb-2 border-t pt-3" style={{ borderColor: 'var(--sidebar-border)' }}>
+          <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--sidebar-muted)' }}>Resources</p>
           {[
             { label: 'Sensor Helm Chart', href: 'https://artifacthub.io/packages/helm/qualys-helm-chart/qualys-tc' },
             { label: 'CS API Docs', href: 'https://docs.qualys.com/en/cs/api/' },
@@ -113,7 +141,8 @@ export default function App() {
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-white hover:bg-[var(--bg-secondary-alpha)] transition-all"
+              className="w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded text-xs hover:bg-[var(--sidebar-hover)] transition-colors"
+              style={{ color: 'var(--sidebar-muted)' }}
             >
               <span>{label}</span>
               <ExternalLink size={12} className="flex-shrink-0 opacity-60" />
@@ -121,9 +150,9 @@ export default function App() {
           ))}
         </div>
 
-        <div className="p-4 border-t" style={{ borderColor: 'var(--border)' }}>
+        <div className="p-3 border-t" style={{ borderColor: 'var(--sidebar-border)' }}>
           {showAccount && (
-            <div className="mb-2 px-3 py-2 rounded-lg text-xs" style={{ background: 'var(--bg-secondary-alpha)', color: 'var(--text-muted)' }}>
+            <div className="mb-2 px-3 py-2 rounded text-xs" style={{ background: 'var(--sidebar-hover)', color: 'var(--sidebar-muted)' }}>
               {needQualys && creds && (
                 <div className="flex items-center gap-2">
                   <KeyRound size={13} className="flex-shrink-0" />
@@ -142,29 +171,22 @@ export default function App() {
               </div>
             </div>
           )}
-          <button
-            onClick={toggle}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-[var(--bg-secondary-alpha)] transition-all"
-            title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {dark ? <Sun size={16} /> : <Moon size={16} />}
-            {dark ? 'Light mode' : 'Dark mode'}
-          </button>
+          <p className="px-3 text-[10px]" style={{ color: 'var(--sidebar-muted)' }}>Powered by Claude · Qualys CS API</p>
         </div>
       </aside>
 
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden" style={{ color: 'var(--text-primary)' }}>
-        <header className="h-16 flex items-center justify-between px-6 border-b flex-shrink-0" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+        <header className="h-14 flex items-center justify-between px-6 border-b flex-shrink-0" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
           <div className="flex items-center gap-3">
             {tab === 'chat' && (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-md shadow-orange-900/20 flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--brand)] to-[var(--brand-2)] flex items-center justify-center shadow-md shadow-blue-900/10 flex-shrink-0">
                 <Zap size={15} className="text-white" fill="white" />
               </div>
             )}
             <div>
               <h1 className="text-lg font-bold leading-tight">{active?.label}</h1>
-              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-xs leading-tight" style={{ color: 'var(--text-muted)' }}>
                 {tab === 'chat' ? 'AI Assistant | Kubernetes & Container Security' : 'Qualys Container Security API'}
               </p>
             </div>
@@ -191,7 +213,7 @@ export default function App() {
                   <X size={16} />
                 </button>
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-900/30">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--brand)] to-[var(--brand-2)] flex items-center justify-center shadow-lg shadow-blue-900/10">
                     <Zap size={18} className="text-white" fill="white" />
                   </div>
                   <div>
@@ -247,6 +269,7 @@ export default function App() {
           />
         )}
       </main>
+      </div>
     </div>
   )
 }

@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
-import { RefreshCw, ShieldAlert, Flame, Crosshair, Zap, Loader2, MessageSquare, ExternalLink } from 'lucide-react'
+import { RefreshCw, ShieldAlert, Flame, Crosshair, Zap, Loader2, MessageSquare, ExternalLink, AlertTriangle } from 'lucide-react'
 import { useDashboard } from '../hooks/useDashboard'
 import { fetchDashboard } from '../lib/api'
 import DashboardSkeleton from '../components/DashboardSkeleton'
 import EmptyState from '../components/EmptyState'
 import type { ThreatIntelCategory, ThreatIntelDetail, ThreatIntelOverview } from '../types/api'
 
-const GROUPS: { id: ThreatIntelCategory['group']; title: string; hint: string; icon: typeof Flame; accent: string }[] = [
-  { id: 'exploited', title: 'Exploited in the wild', hint: 'Fix these first', icon: Flame, accent: 'from-red-500 to-rose-600' },
-  { id: 'exploitability', title: 'Easy to exploit', hint: 'Likely to be attacked next', icon: Crosshair, accent: 'from-orange-500 to-amber-500' },
-  { id: 'impact', title: 'High impact', hint: 'Damage if exploited', icon: Zap, accent: 'from-violet-500 to-indigo-500' },
+const GROUPS: { id: ThreatIntelCategory['group']; title: string; hint: string; icon: typeof Flame; bar: string }[] = [
+  { id: 'exploited', title: 'Exploited in the wild', hint: 'Fix first', icon: Flame, bar: '#e5484d' },
+  { id: 'exploitability', title: 'Easy to exploit', hint: 'Likely next', icon: Crosshair, bar: '#f08c00' },
+  { id: 'impact', title: 'High impact', hint: 'Damage if exploited', icon: Zap, bar: '#6e56cf' },
 ]
 
 const SEV_LABEL: Record<number, string> = { 5: 'Critical', 4: 'High', 3: 'Medium', 2: 'Low', 1: 'Info' }
@@ -57,133 +57,141 @@ export default function ThreatIntel({ onAsk }: Props) {
 
   const current = byKey[selected]
   const failed = data.categories.filter(c => c.error).length
+  const max = Math.max(1, ...data.categories.map(c => c.count ?? 0))
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold">Threat Intelligence</h2>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-            Vulnerabilities in your environment grouped by Qualys real-time threat indicators. Click a category to see the vulnerabilities.
-          </p>
-        </div>
-        <button onClick={refresh} className="flex items-center gap-2 text-sm text-slate-400 hover:text-blue-400 transition-colors flex-shrink-0">
+    <div className="flex flex-col gap-4 h-full min-h-0">
+      {/* Title row */}
+      <div className="flex items-center justify-between gap-4 flex-shrink-0">
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+          Vulnerabilities by Qualys real-time threat indicator. Pick a category to see its vulnerabilities.
+          {failed > 0 && <span className="text-amber-500"> · {failed} couldn't be loaded</span>}
+        </p>
+        <button onClick={refresh} className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--brand)] transition-colors flex-shrink-0">
           <RefreshCw size={14} /> Refresh
         </button>
       </div>
 
-      {failed > 0 && (
-        <p className="text-xs text-amber-500">{failed} categor{failed === 1 ? 'y' : 'ies'} couldn't be loaded from Qualys.</p>
-      )}
-
-      {GROUPS.map(g => {
-        const cats = data.categories.filter(c => c.group === g.id)
-        return (
-          <section key={g.id}>
-            <div className="flex items-center gap-2 mb-3">
-              <g.icon size={16} className="text-slate-400" />
-              <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{g.title}</h3>
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>· {g.hint}</span>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
-              {cats.map(c => {
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4 flex-1 min-h-0">
+        {/* Left: compact category list */}
+        <nav aria-label="Threat categories" className="rounded-lg border overflow-y-auto p-2 space-y-2"
+          style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', boxShadow: 'var(--card-shadow)' }}>
+          {GROUPS.map(g => (
+            <div key={g.id} className="rounded-md border overflow-hidden" style={{ borderColor: `${g.bar}66`, borderLeftWidth: 3, borderLeftColor: g.bar }}>
+              <div className="flex items-center gap-1.5 px-3 py-1.5" style={{ background: `${g.bar}12` }}>
+                <g.icon size={12} style={{ color: g.bar }} />
+                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{g.title}</span>
+                <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>· {g.hint}</span>
+              </div>
+              {data.categories.filter(c => c.group === g.id).map(c => {
                 const active = c.key === selected
-                const zero = c.count === 0
+                const pct = c.count ? Math.max(2, (c.count / max) * 100) : 0
                 return (
-                  <button
-                    key={c.key}
-                    onClick={() => setSelected(c.key)}
+                  <button key={c.key} onClick={() => setSelected(c.key)}
                     title={`${c.description}\nthreatIntel.${c.key}:true`}
-                    className={`relative overflow-hidden text-left rounded-xl p-4 border transition-all hover:-translate-y-0.5 ${active ? 'ring-2 ring-blue-500' : ''} ${zero ? 'opacity-60' : ''}`}
-                    style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
-                  >
-                    <div className={`absolute top-0 left-0 w-1 h-full bg-gradient-to-b ${g.accent}`} />
-                    <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{c.label}</p>
-                    <p className="text-2xl font-bold mt-1" style={{ color: 'var(--text-primary)' }}>{fmt(c)}</p>
-                    <p className="text-[11px] mt-1 leading-snug" style={{ color: 'var(--text-muted)' }}>{c.description}</p>
+                    aria-current={active ? 'true' : undefined}
+                    className={`w-full text-left px-3 py-1.5 transition-colors ${active ? "" : "hover:bg-[var(--bg-hover)]"} ${c.count === 0 ? 'opacity-50' : ''}`}
+                    style={active ? { background: 'var(--brand-soft)', boxShadow: 'inset 0 0 0 1px var(--brand)' } : undefined}>
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-[13px] truncate" style={{ color: active ? 'var(--brand)' : 'var(--text-primary)', fontWeight: active ? 600 : 500 }}>{c.label}</span>
+                      {c.error
+                        ? <span className="flex items-center gap-1 text-[11px] font-medium text-amber-600" title={`Couldn't load from Qualys: ${c.error}`}><AlertTriangle size={12} />failed</span>
+                        : <span className="text-[13px] font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>{fmt(c)}</span>}
+                    </div>
+                    <div className="mt-1 h-[4.5px] rounded-full" style={{ background: "var(--bg-secondary)" }}>
+                      <div className="h-[4.5px] rounded-full" style={{ width: `${pct}%`, background: g.bar }} />
+                    </div>
                   </button>
                 )
               })}
             </div>
-          </section>
-        )
-      })}
+          ))}
+        </nav>
 
-      <section className="rounded-xl border" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
-        <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b" style={{ borderColor: 'var(--border)' }}>
-          <div>
-            <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {current?.label ?? selected} {detail && <span className="font-normal" style={{ color: 'var(--text-muted)' }}>· {detail.total.toLocaleString()}{detail.capped ? '+' : ''} vulnerabilities</span>}
-            </h3>
-            <code className="text-xs" style={{ color: 'var(--text-muted)' }}>{detail?.filter ?? `threatIntel.${selected}:true`}</code>
+        {/* Right: vulnerabilities in the selected category */}
+        <section className="rounded-lg border flex flex-col min-h-0"
+          style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', boxShadow: 'var(--card-shadow)' }}>
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
+            <div className="min-w-0">
+              <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {current?.label ?? selected}
+                {detail && <span className="font-normal" style={{ color: 'var(--text-muted)' }}> · {detail.total.toLocaleString()}{detail.capped ? '+' : ''} vulnerabilities</span>}
+              </h3>
+              <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                {current?.description} · <code>{detail?.filter ?? `threatIntel.${selected}:true`}</code>
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                <input type="checkbox" checked={criticalOnly} onChange={e => setCriticalOnly(e.target.checked)} />
+                High &amp; critical only
+              </label>
+              {onAsk && current && (
+                <button
+                  onClick={() => onAsk(`Which images and containers are affected by ${current.label} vulnerabilities (threatIntel.${current.key}:true)? Prioritise what to fix first.`)}
+                  className="flex items-center gap-1.5 text-xs font-semibold rounded-md px-3 py-1.5 bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white"
+                >
+                  <MessageSquare size={13} /> Ask Sheldon
+                </button>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
-              <input type="checkbox" checked={criticalOnly} onChange={e => setCriticalOnly(e.target.checked)} />
-              High &amp; critical only
-            </label>
-            {onAsk && current && (
-              <button
-                onClick={() => onAsk(`Which images and containers are affected by ${current.label} vulnerabilities (threatIntel.${current.key}:true)? Prioritise what to fix first.`)}
-                className="flex items-center gap-1.5 text-xs font-semibold rounded-lg px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white"
-              >
-                <MessageSquare size={13} /> Ask Sheldon
-              </button>
+
+          <div className="flex-1 overflow-auto min-h-0">
+            {detailState === 'loading' && (
+              <div className="flex items-center gap-2 p-6 text-sm" style={{ color: 'var(--text-muted)' }}>
+                <Loader2 size={16} className="animate-spin" /> Loading from Qualys…
+              </div>
+            )}
+            {detailState === 'error' && <div className="p-6 text-sm text-red-500">Error: {detailError}</div>}
+            {detailState === 'idle' && detail && detail.items.length === 0 && (
+              <div className="p-6"><EmptyState icon={ShieldAlert} title="No vulnerabilities in this category" /></div>
+            )}
+            {detailState === 'idle' && detail && detail.items.length > 0 && (
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 z-10" style={{ background: 'var(--bg-card)' }}>
+                  <tr className="text-left text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                    <th className="px-4 py-2 font-semibold">Severity</th>
+                    <th className="px-4 py-2 font-semibold">QID</th>
+                    <th className="px-4 py-2 font-semibold">Title</th>
+                    <th className="px-4 py-2 font-semibold">CVEs</th>
+                    <th className="px-4 py-2 font-semibold text-right">Images</th>
+                    <th className="px-4 py-2 font-semibold text-right">Containers</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detail.items.map((v, i) => (
+                    <tr key={`${v.qid}-${i}`} className="border-t hover:bg-[var(--bg-hover)]" style={{ borderColor: 'var(--border)' }}>
+                      <td className="px-4 py-2">
+                        <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold border ${SEV_STYLE[v.severity] ?? SEV_STYLE[1]}`}>
+                          {SEV_LABEL[v.severity] ?? v.severity}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 font-mono text-xs" style={{ color: 'var(--text-secondary)' }}>{v.qid ?? '—'}</td>
+                      <td className="px-4 py-2" style={{ color: 'var(--text-primary)' }}>{v.title || '—'}</td>
+                      <td className="px-4 py-2 text-xs whitespace-nowrap">
+                        {v.cves.length === 0 ? '—' : v.cves.slice(0, 2).map(c => (
+                          <a key={c} href={`https://nvd.nist.gov/vuln/detail/${c}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 mr-2 text-[var(--brand)] hover:underline">
+                            {c}<ExternalLink size={10} />
+                          </a>
+                        ))}
+                        {v.cves.length > 2 && <span style={{ color: 'var(--text-muted)' }}>+{v.cves.length - 2}</span>}
+                      </td>
+                      <td className="px-4 py-2 text-right tabular-nums" style={{ color: 'var(--text-secondary)' }}>{v.images ?? '—'}</td>
+                      <td className="px-4 py-2 text-right tabular-nums" style={{ color: 'var(--text-secondary)' }}>{v.containers ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
-        </div>
-
-        {detailState === 'loading' && (
-          <div className="flex items-center gap-2 p-6 text-sm" style={{ color: 'var(--text-muted)' }}>
-            <Loader2 size={16} className="animate-spin" /> Loading from Qualys…
-          </div>
-        )}
-        {detailState === 'error' && <div className="p-6 text-sm text-red-400">Error: {detailError}</div>}
-        {detailState === 'idle' && detail && detail.items.length === 0 && (
-          <div className="p-6"><EmptyState icon={ShieldAlert} title="No vulnerabilities in this category" /></div>
-        )}
-        {detailState === 'idle' && detail && detail.items.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-                  <th className="px-4 py-2">Severity</th>
-                  <th className="px-4 py-2">QID</th>
-                  <th className="px-4 py-2">Title</th>
-                  <th className="px-4 py-2">CVEs</th>
-                  <th className="px-4 py-2 text-right">Images</th>
-                  <th className="px-4 py-2 text-right">Containers</th>
-                </tr>
-              </thead>
-              <tbody>
-                {detail.items.map((v, i) => (
-                  <tr key={`${v.qid}-${i}`} className="border-t" style={{ borderColor: 'var(--border)' }}>
-                    <td className="px-4 py-2">
-                      <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-semibold border ${SEV_STYLE[v.severity] ?? SEV_STYLE[1]}`}>
-                        {SEV_LABEL[v.severity] ?? v.severity}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 font-mono text-xs" style={{ color: 'var(--text-secondary)' }}>{v.qid ?? '—'}</td>
-                    <td className="px-4 py-2" style={{ color: 'var(--text-primary)' }}>{v.title || '—'}</td>
-                    <td className="px-4 py-2 text-xs">
-                      {v.cves.length === 0 ? '—' : v.cves.map(c => (
-                        <a key={c} href={`https://nvd.nist.gov/vuln/detail/${c}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 mr-2 text-blue-500 hover:underline">
-                          {c}<ExternalLink size={10} />
-                        </a>
-                      ))}
-                    </td>
-                    <td className="px-4 py-2 text-right" style={{ color: 'var(--text-secondary)' }}>{v.images ?? '—'}</td>
-                    <td className="px-4 py-2 text-right" style={{ color: 'var(--text-secondary)' }}>{v.containers ?? '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="px-4 py-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              Showing the top {detail.items.length}. Counts refresh every {Math.round((data.cached_for_seconds ?? 300) / 60)} min.
+          {detail && detail.items.length > 0 && (
+            <p className="px-4 py-2 border-t text-[11px] flex-shrink-0" style={{ color: 'var(--text-muted)', borderColor: 'var(--border)' }}>
+              Top {detail.items.length} by severity · counts refresh every {Math.round((data.cached_for_seconds ?? 300) / 60)} min
             </p>
-          </div>
-        )}
-      </section>
+          )}
+        </section>
+      </div>
     </div>
   )
 }

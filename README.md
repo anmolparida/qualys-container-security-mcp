@@ -144,7 +144,10 @@ cp deploy/aws/params.example.env deploy/aws/params.env   # VPC, subnets, certifi
 deploy/aws/deploy.sh all                                  # build, push, deploy
 ```
 
-Then point your DNS name at the `LoadBalancerDnsName` output. Full step-by-step guide,
+**Just need it for your team for a while?** Run it on a single EC2 instance with HTTPS in
+about 15 minutes, with no shared credentials: **[deploy/ec2/README.md](deploy/ec2/README.md)**.
+
+For the ECS setup, point your DNS name at the `LoadBalancerDnsName` output. Full step-by-step guide,
 settings and operations: **[DEPLOYMENT.md](DEPLOYMENT.md)**.
 
 ---
