@@ -51,7 +51,7 @@ TOOLS: list[ToolDef] = [
         "parameters": {
             "filter": {"type": "string", "default": ""},
             "page_number": {"type": "integer", "default": 1},
-            "page_size": {"type": "integer", "default": 50},
+            "page_size": {"type": "integer", "default": 100, "description": "Records per call (default 100, up to 200). Prefer one large page; check `has_more`/`total` in the result before asking for more."},
             "sort": {"type": "string", "default": "created:desc"},
         },
         "route": _path("/containers"),
@@ -110,7 +110,7 @@ TOOLS: list[ToolDef] = [
         "parameters": {
             "filter": {"type": "string", "default": ""},
             "page_number": {"type": "integer", "default": 1},
-            "page_size": {"type": "integer", "default": 50},
+            "page_size": {"type": "integer", "default": 100, "description": "Records per call (default 100, up to 200). Prefer one large page; check `has_more`/`total` in the result before asking for more."},
             "sort": {"type": "string", "default": "created:desc"},
         },
         "route": _path("/images"),
@@ -182,13 +182,13 @@ TOOLS: list[ToolDef] = [
     {
         "name": "find_images_with_secrets",
         "description": "Find all images that have secrets detected. Uses filter 'detection.type:secret' per Qualys CS search token docs.",
-        "parameters": {"page_size": {"type": "integer", "default": 50}},
+        "parameters": {"page_size": {"type": "integer", "default": 100, "description": "Records per call (default 100, up to 200). Prefer one large page; check `has_more`/`total` in the result before asking for more."}},
         "route": _path("/images", {"filter": "container.image.hasSecrets:true", "sort": "created:desc"}),
     },
     {
         "name": "find_images_with_malware",
         "description": "Find all images that have malware detected. Uses filter 'detection.type:malware' per Qualys CS search token docs.",
-        "parameters": {"page_size": {"type": "integer", "default": 50}},
+        "parameters": {"page_size": {"type": "integer", "default": 100, "description": "Records per call (default 100, up to 200). Prefer one large page; check `has_more`/`total` in the result before asking for more."}},
         "route": _path("/images", {"filter": "malware.imageMalwareCount:>0", "sort": "created:desc"}),
     },
     {
@@ -196,7 +196,7 @@ TOOLS: list[ToolDef] = [
         "description": "Find images filtered by vulnerability severity.",
         "parameters": {
             "severity": {"type": "string", "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"], "default": "CRITICAL"},
-            "page_size": {"type": "integer", "default": 50},
+            "page_size": {"type": "integer", "default": 100, "description": "Records per call (default 100, up to 200). Prefer one large page; check `has_more`/`total` in the result before asking for more."},
         },
         "route": _path(
             "/images",
@@ -209,7 +209,7 @@ TOOLS: list[ToolDef] = [
         "description": "Find containers filtered by vulnerability severity.",
         "parameters": {
             "severity": {"type": "string", "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"], "default": "CRITICAL"},
-            "page_size": {"type": "integer", "default": 50},
+            "page_size": {"type": "integer", "default": 100, "description": "Records per call (default 100, up to 200). Prefer one large page; check `has_more`/`total` in the result before asking for more."},
         },
         "route": _path(
             "/containers",
@@ -225,7 +225,7 @@ TOOLS: list[ToolDef] = [
         "parameters": {
             "filter": {"type": "string", "default": ""},
             "page_number": {"type": "integer", "default": 1},
-            "page_size": {"type": "integer", "default": 50},
+            "page_size": {"type": "integer", "default": 100, "description": "Records per call (default 100, up to 200). Prefer one large page; check `has_more`/`total` in the result before asking for more."},
         },
         "route": _path("/registry"),
     },
@@ -270,7 +270,7 @@ TOOLS: list[ToolDef] = [
         "parameters": {
             "registry_id": {"type": "string"},
             "page_number": {"type": "integer", "default": 1},
-            "page_size": {"type": "integer", "default": 50},
+            "page_size": {"type": "integer", "default": 100, "description": "Records per call (default 100, up to 200). Prefer one large page; check `has_more`/`total` in the result before asking for more."},
         },
         "route": _path_with_sha("/registry/{registry_id}/repository"),
     },
@@ -294,7 +294,7 @@ TOOLS: list[ToolDef] = [
         "parameters": {
             "filter": {"type": "string", "default": ""},
             "page_number": {"type": "integer", "default": 1},
-            "page_size": {"type": "integer", "default": 50},
+            "page_size": {"type": "integer", "default": 100, "description": "Records per call (default 100, up to 200). Prefer one large page; check `has_more`/`total` in the result before asking for more."},
         },
         "route": _path("/sensors"),
     },
@@ -318,7 +318,7 @@ TOOLS: list[ToolDef] = [
         "parameters": {
             "filter": {"type": "string", "default": ""},
             "page_number": {"type": "integer", "default": 1},
-            "page_size": {"type": "integer", "default": 50},
+            "page_size": {"type": "integer", "default": 100, "description": "Records per call (default 100, up to 200). Prefer one large page; check `has_more`/`total` in the result before asking for more."},
         },
         "route": _path("/reports"),
     },
@@ -336,7 +336,7 @@ TOOLS: list[ToolDef] = [
         "parameters": {
             "filter": {"type": "string", "default": ""},
             "page_number": {"type": "integer", "default": 1},
-            "page_size": {"type": "integer", "default": 50},
+            "page_size": {"type": "integer", "default": 100, "description": "Records per call (default 100, up to 200). Prefer one large page; check `has_more`/`total` in the result before asking for more."},
         },
         "route": _path("/k8sClusters"),
     },
@@ -352,7 +352,7 @@ TOOLS: list[ToolDef] = [
         "parameters": {
             "filter": {"type": "string", "default": ""},
             "page_number": {"type": "integer", "default": 1},
-            "page_size": {"type": "integer", "default": 50},
+            "page_size": {"type": "integer", "default": 100, "description": "Records per call (default 100, up to 200). Prefer one large page; check `has_more`/`total` in the result before asking for more."},
         },
         "route": _path("/k8sResource/pod"),
     },
@@ -362,7 +362,7 @@ TOOLS: list[ToolDef] = [
         "parameters": {
             "filter": {"type": "string", "default": ""},
             "page_number": {"type": "integer", "default": 1},
-            "page_size": {"type": "integer", "default": 50},
+            "page_size": {"type": "integer", "default": 100, "description": "Records per call (default 100, up to 200). Prefer one large page; check `has_more`/`total` in the result before asking for more."},
         },
         "route": _path("/k8sResource/namespace"),
     },
@@ -372,7 +372,7 @@ TOOLS: list[ToolDef] = [
         "parameters": {
             "filter": {"type": "string", "default": ""},
             "page_number": {"type": "integer", "default": 1},
-            "page_size": {"type": "integer", "default": 50},
+            "page_size": {"type": "integer", "default": 100, "description": "Records per call (default 100, up to 200). Prefer one large page; check `has_more`/`total` in the result before asking for more."},
         },
         "route": _path("/k8s_postures/list"),
     },
@@ -390,7 +390,7 @@ TOOLS: list[ToolDef] = [
         "parameters": {
             "filter": {"type": "string", "default": ""},
             "page_number": {"type": "integer", "default": 1},
-            "page_size": {"type": "integer", "default": 50},
+            "page_size": {"type": "integer", "default": 100, "description": "Records per call (default 100, up to 200). Prefer one large page; check `has_more`/`total` in the result before asking for more."},
         },
         "route": _path("/vulnerability"),
     },
@@ -406,7 +406,7 @@ TOOLS: list[ToolDef] = [
         "parameters": {
             "filter": {"type": "string", "default": ""},
             "page_number": {"type": "integer", "default": 1},
-            "page_size": {"type": "integer", "default": 50},
+            "page_size": {"type": "integer", "default": 100, "description": "Records per call (default 100, up to 200). Prefer one large page; check `has_more`/`total` in the result before asking for more."},
         },
         "route": _path("/controls"),
     },
@@ -422,7 +422,7 @@ TOOLS: list[ToolDef] = [
         "parameters": {
             "filter": {"type": "string", "default": ""},
             "page_number": {"type": "integer", "default": 1},
-            "page_size": {"type": "integer", "default": 50},
+            "page_size": {"type": "integer", "default": 100, "description": "Records per call (default 100, up to 200). Prefer one large page; check `has_more`/`total` in the result before asking for more."},
         },
         "route": _path("/exception"),
     },
@@ -438,7 +438,7 @@ TOOLS: list[ToolDef] = [
         "parameters": {
             "filter": {"type": "string", "default": ""},
             "page_number": {"type": "integer", "default": 1},
-            "page_size": {"type": "integer", "default": 50},
+            "page_size": {"type": "integer", "default": 100, "description": "Records per call (default 100, up to 200). Prefer one large page; check `has_more`/`total` in the result before asking for more."},
         },
         "route": _path("/secretDetector"),
     },

@@ -41,6 +41,7 @@ from starlette.responses import JSONResponse
 from qualys_client import Credentials, QualysAuthError, request
 from shared.tool_registry import TOOLS, build_route, get_tool_method, preflight_filter, run_local_tool
 from shared import qql
+from shared.compact import compact_response
 
 logger = logging.getLogger("qualys-mcp")
 
@@ -109,7 +110,11 @@ def _make_tool_handler(tool: dict[str, Any]):
             creds = _resolve_credentials(ctx)
             path, params = build_route(name, kwargs)
             if method == "GET":
-                return await request(creds, "GET", path, params=params)
+                result = await request(creds, "GET", path, params=params)
+                if os.environ.get("QUALYS_COMPACT", "on").lower() != "off":
+                    result = compact_response(result, kwargs.get("page_size"), kwargs.get("page_number"),
+                                              max_chars=int(os.environ.get("MCP_MAX_RESULT_CHARS", "100000")))
+                return result
             return await request(creds, method, path, body=params)
         except QualysAuthError as e:
             raise ToolError(f"Qualys authentication error: {e}") from None

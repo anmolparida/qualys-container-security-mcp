@@ -72,7 +72,43 @@ export interface K8sPosture {
   clusters: K8sCluster[]
 }
 
+export interface ThreatIntelCategory {
+  key: string
+  label: string
+  description: string
+  group: 'exploited' | 'exploitability' | 'impact'
+  count: number | null
+  capped: boolean
+  error: string | null
+}
+
+export interface ThreatIntelOverview {
+  categories: ThreatIntelCategory[]
+  cached_for_seconds?: number
+}
+
+export interface ThreatIntelVuln {
+  qid: number | null
+  title: string
+  severity: number
+  cves: string[]
+  patch_available: boolean | null
+  first_found: string | null
+  images: number | null
+  containers: number | null
+}
+
+export interface ThreatIntelDetail {
+  key: string
+  label: string
+  filter: string
+  total: number
+  capped: boolean
+  items: ThreatIntelVuln[]
+}
+
 export type DashboardEndpoint =
+  | 'threat-intel'
   | 'containers/overview'
   | 'images/vulnerabilities'
   | 'registry/health'

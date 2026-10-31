@@ -217,3 +217,11 @@ async def post_async(path: str, body: dict = None) -> dict:
             data = {"result": resp.text}
         logger.info(f"QUALYS POST {API_PREFIX}{path}  → {resp.status_code}  {int((time.time() - t0) * 1000)}ms")
         return data
+
+
+def cache_scope() -> str:
+    """Key that separates cached data per Qualys account (never shared across users)."""
+    if auth_mode() == "user":
+        creds = current_credentials.get()
+        return creds.cache_key if creds else "anonymous"
+    return "service"

@@ -16,6 +16,7 @@ if PROJECT_ROOT not in sys.path:
 
 from shared.tool_registry import build_anthropic_tools, build_route, get_tool_method, preflight_filter, run_local_tool
 from shared import qql
+from shared.compact import compact_response
 
 logger = logging.getLogger("agent")
 
@@ -496,7 +497,13 @@ def _doc_index_text() -> str:
 # Inject the verified index + a hard "no guessing" rule into the system prompt so
 # the model only ever fetches real URLs.
 # Documented QQL guidance + team-verified filters (shared/qql_examples.txt).
-SYSTEM_PROMPT = SYSTEM_PROMPT.replace("{QQL_GUIDANCE}", qql.prompt_block())
+SYSTEM_PROMPT = SYSTEM_PROMPT.replace("{QQL_GUIDANCE}", qql.prompt_block() + """
+
+PAGING (results are compact: total, has_more, items):
+- Ask for page_size 100 (up to 200) in ONE call. Do not request several pages in parallel.
+- "How many …" → answer from `total`; don't fetch every page to count.
+- Only fetch the next page when has_more is true AND the user needs records beyond those you have.
+- If a result has `omitted`, narrow the filter rather than paging blindly.""")
 
 SYSTEM_PROMPT += (
     "\n\nVERIFIED DOCUMENTATION URLS (fetch_docs ALLOWLIST — use ONLY these):\n"
@@ -721,14 +728,21 @@ async def _call_qualys_tool(name: str, inputs: dict) -> str:
             result = await post_async(path, params)
         else:
             result = await get_async(path, params)
-        return json.dumps(result)
+            if os.environ.get("QUALYS_COMPACT", "on").lower() != "off":
+                # Trim bulky fields + paging envelope (total / has_more), cut at a
+                # record boundary so the model never sees half a record.
+                result = compact_response(result, inputs.get("page_size"), inputs.get("page_number"),
+                                          max_chars=MAX_TOOL_RESULT_CHARS - 500)
+        return json.dumps(result, default=str)
     except Exception as e:
         return json.dumps({"error": str(e)})
 
 
 MAX_HISTORY_MESSAGES = 6
 MAX_MESSAGE_CHARS = 12000
-MAX_TOOL_RESULT_CHARS = 4000
+# Tool results are compacted (shared/compact.py) and then capped at this size.
+# ~60k chars ≈ 15k tokens: room for ~60-100 compacted records per call.
+MAX_TOOL_RESULT_CHARS = int(os.environ.get("TOOL_RESULT_MAX_CHARS", "60000"))
 
 
 def _truncate_text(text: str, limit: int) -> str:

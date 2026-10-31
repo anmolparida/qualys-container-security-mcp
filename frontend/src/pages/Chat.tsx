@@ -42,7 +42,7 @@ const markdownComponents: any = {
   h3: ({ children }: any) => <h3 className="text-sm font-bold text-blue-400 mb-1 mt-2">{children}</h3>,
   strong: ({ children }: any) => <strong className="font-semibold text-blue-400">{children}</strong>,
   a: ({ href, children }: any) => (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-400 transition-colors">
+    <a href={href} target="_blank" rel="noopener noreferrer" className="text-[var(--brand)] underline hover:opacity-80 transition-colors">
       {children}
     </a>
   ),
@@ -218,18 +218,44 @@ export default function Chat() {
     }
   }
 
+  // Send a question queued from another page (e.g. Threat Intel → Ask Sheldon).
+  const pending = useChatStore(state => state.pending)
+  const setPending = useChatStore(state => state.setPending)
+  useEffect(() => {
+    if (pending && !streaming) {
+      setPending(null)
+      send(pending)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, streaming])
+
   return (
     <div className="flex flex-col h-full">
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 pb-4">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center gap-4">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-xl shadow-orange-900/30">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[var(--brand)] to-[var(--brand-2)] flex items-center justify-center shadow-xl shadow-blue-900/10">
               <Zap size={36} className="text-white" fill="white" />
             </div>
             <div className="text-center space-y-2">
               <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Sheldon</p>
               <p className="text-base" style={{ color: 'var(--text-secondary)' }}>Ask me about Qualys Container Security</p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-2 max-w-2xl mt-2">
+              {[
+                'Show CISA KEV vulnerabilities in my images',
+                'Which running containers have critical vulnerabilities?',
+                'Which images have secrets or malware?',
+                'Are any containers running as root or privileged?',
+                'How do I deploy the sensor with Helm?',
+              ].map(q => (
+                <button key={q} onClick={() => send(q)} disabled={streaming}
+                  className="px-3 py-1.5 rounded-full border text-sm transition-colors hover:border-[var(--brand)] hover:text-[var(--brand)]"
+                  style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
+                  {q}
+                </button>
+              ))}
             </div>
           </div>
         ) : (
@@ -237,24 +263,24 @@ export default function Chat() {
             {messages.map((m, i) => (
               <div key={i} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {m.role === 'assistant' && (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center flex-shrink-0 mt-1 shadow-sm shadow-orange-900/20">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--brand)] to-[var(--brand-2)] flex items-center justify-center flex-shrink-0 mt-1 shadow-sm shadow-blue-900/10">
                     <Zap size={15} className="text-white" fill="white" />
                   </div>
                 )}
                 <div className={`max-w-[95%] md:max-w-[95%] ${m.role === 'user' ? 'order-1' : 'order-2'}`}>
                   {m.role === 'user' && m.fact && (
                     <div className="mb-2 text-right">
-                      <div className="inline-flex items-center gap-2 rounded-lg border-l-4 border-orange-600/60 p-2.5 text-xs text-left max-w-full" style={{ background: 'var(--bg-secondary-alpha)', color: 'var(--text-muted)' }}>
+                      <div className="inline-flex items-center gap-2 rounded-lg border-l-4 border-[var(--brand)] p-2.5 text-xs text-left max-w-full" style={{ background: 'var(--bg-secondary-alpha)', color: 'var(--text-muted)' }}>
                         <span className="relative flex-shrink-0 flex items-center justify-center w-4 h-4" style={{ overflow: 'visible' }}>
-                          <span className="absolute inline-flex w-4 h-4 rounded-full bg-orange-400" style={{ animation: 'zap-ripple 3s ease-out infinite' }} />
-                          <span className="absolute inline-flex w-4 h-4 rounded-full bg-orange-400" style={{ animation: 'zap-ripple 3s ease-out 1s infinite' }} />
-                          <span className="absolute inline-flex w-4 h-4 rounded-full bg-orange-400" style={{ animation: 'zap-ripple 3s ease-out 2s infinite' }} />
-                          <span className="relative flex items-center justify-center w-4 h-4 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 shadow-sm shadow-orange-900/20">
+                          <span className="absolute inline-flex w-4 h-4 rounded-full bg-[var(--brand-2)]" style={{ animation: 'zap-ripple 3s ease-out infinite' }} />
+                          <span className="absolute inline-flex w-4 h-4 rounded-full bg-[var(--brand-2)]" style={{ animation: 'zap-ripple 3s ease-out 1s infinite' }} />
+                          <span className="absolute inline-flex w-4 h-4 rounded-full bg-[var(--brand-2)]" style={{ animation: 'zap-ripple 3s ease-out 2s infinite' }} />
+                          <span className="relative flex items-center justify-center w-4 h-4 rounded-full bg-gradient-to-br from-[var(--brand)] to-[var(--brand-2)] shadow-sm shadow-blue-900/10">
                             <Zap size={9} fill="white" className="text-white" />
                           </span>
                         </span>
                         <span>
-                          <span className="text-orange-600">Did you know?</span>{' '}
+                          <span className="text-[var(--brand)]">Did you know?</span>{' '}
                           <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{m.fact}</span>
                         </span>
                       </div>
@@ -278,7 +304,7 @@ export default function Chat() {
                         : 'rounded-bl-sm shadow-sm border'
                     }`}
                     style={m.role === 'user'
-                      ? { background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)', whiteSpace: 'pre-wrap' }
+                      ? { background: 'var(--brand)', whiteSpace: 'pre-wrap' }
                       : { background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)', boxShadow: '0 1px 8px 0 rgba(0,0,0,0.07)' }
                     }
                   >
@@ -321,13 +347,13 @@ export default function Chat() {
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send(input)}
             placeholder="Ask about containers, images, vulnerabilities, or charts..."
             disabled={streaming}
-            className="flex-1 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-colors border"
+            className="flex-1 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)] disabled:opacity-50 transition-colors border"
             style={{ background: 'var(--bg-base)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
           />
           <button
             onClick={() => send(input)}
             disabled={streaming || !input.trim()}
-            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl px-4 py-3 transition-colors flex items-center gap-2"
+            className="bg-[var(--brand)] hover:bg-[var(--brand-hover)] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl px-4 py-3 transition-colors flex items-center gap-2"
           >
             <Send size={18} />
             <span className="hidden sm:inline text-sm font-medium">Send</span>

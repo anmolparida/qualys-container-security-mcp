@@ -48,7 +48,7 @@ export default function ContainerOverview() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Container Overview</h2>
-        <button onClick={refresh} className="flex items-center gap-2 text-sm text-slate-400 hover:text-blue-400 transition-colors">
+        <button onClick={refresh} className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--brand)] transition-colors">
           <RefreshCw size={14} /> Refresh
         </button>
       </div>

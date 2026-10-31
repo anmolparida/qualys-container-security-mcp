@@ -99,13 +99,13 @@ export default function DataTable<T extends Record<string, any>>({
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="pl-7 pr-3 py-1.5 rounded-lg text-xs border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="pl-7 pr-3 py-1.5 rounded-lg text-xs border focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
                 style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
               />
             </div>
             <button
               onClick={exportCSV}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border hover:border-blue-500 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border hover:border-[var(--brand)] transition-colors"
               style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
               title="Download CSV"
             >

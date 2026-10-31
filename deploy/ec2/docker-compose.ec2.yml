@@ -1,0 +1,28 @@
+# EC2 add-on to the root docker-compose.yml: puts Caddy (HTTPS) in front and
+# stops exposing the app ports directly. Used by deploy/ec2/setup.sh:
+#   docker compose -f docker-compose.yml -f deploy/ec2/docker-compose.ec2.yml up -d --build
+services:
+  web:
+    ports: !reset []
+    restart: always
+  mcp:
+    ports: !reset []
+    restart: always
+  caddy:
+    image: caddy:2
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:443}
+      TLS_DIRECTIVE: ${TLS_DIRECTIVE:-tls internal}
+    volumes:
+      - ./deploy/ec2/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [web, mcp]
+
+volumes:
+  caddy_data:
+  caddy_config:
