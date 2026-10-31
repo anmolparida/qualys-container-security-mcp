@@ -218,6 +218,17 @@ export default function Chat() {
     }
   }
 
+  // Send a question queued from another page (e.g. Threat Intel → Ask Sheldon).
+  const pending = useChatStore(state => state.pending)
+  const setPending = useChatStore(state => state.setPending)
+  useEffect(() => {
+    if (pending && !streaming) {
+      setPending(null)
+      send(pending)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, streaming])
+
   return (
     <div className="flex flex-col h-full">
       {/* Messages area */}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Container, ImageIcon, Database, Network, Zap, Sun, Moon, ExternalLink, Info, X, KeyRound, LogOut } from 'lucide-react'
+import { Container, ImageIcon, Database, Network, Zap, Sun, Moon, ExternalLink, Info, X, KeyRound, LogOut, ShieldAlert } from 'lucide-react'
+import ThreatIntel from './pages/ThreatIntel'
 import QualysSignIn from './components/QualysSignIn'
 import { fetchConfig, type AuthMode, type LlmBilling } from './lib/api'
 import { accountLabel, clearCredentials, clearLlm, currentCredentials, currentLlm, onAuthRequired, onCredentialsChange } from './lib/credentials'
@@ -12,14 +13,15 @@ import K8sPosture from './pages/K8sPosture'
 import Chat from './pages/Chat'
 import { useTheme } from './context/ThemeContext'
 
-type Tab = 'containers' | 'images' | 'registry' | 'k8s' | 'chat'
+type Tab = 'containers' | 'images' | 'threat' | 'registry' | 'k8s' | 'chat'
 
 const NAV = [
   { id: 'containers' as Tab, label: 'Containers', icon: Container },
   { id: 'images' as Tab, label: 'Images', icon: ImageIcon },
+  { id: 'threat' as Tab, label: 'Threat Intel', icon: ShieldAlert },
   { id: 'registry' as Tab, label: 'Registry', icon: Database },
   { id: 'k8s' as Tab, label: 'K8s Posture', icon: Network },
-  { id: 'chat' as Tab, label: 'Sheldon', icon: Zap },
+  { id: 'chat' as Tab, label: 'Ask Sheldon', icon: Zap },
 ]
 
 export default function App() {
@@ -38,6 +40,7 @@ export default function App() {
   const [sessionKey, setSessionKey] = useState(0)
   const resetDashboard = useDashboardStore(s => s.reset)
   const resetChat = useChatStore(s => s.reset)
+  const setPendingQuestion = useChatStore(s => s.setPending)
 
   useEffect(() => {
     fetchConfig()
@@ -227,6 +230,7 @@ export default function App() {
         <div className="flex-1 overflow-y-auto p-6" key={sessionKey}>
           {ready && tab === 'containers' && <ContainerOverview />}
           {ready && tab === 'images' && <ImageVulnerabilities />}
+          {ready && tab === 'threat' && <ThreatIntel onAsk={q => { setPendingQuestion(q); setTab('chat') }} />}
           {ready && tab === 'registry' && <RegistryHealth />}
           {ready && tab === 'k8s' && <K8sPosture />}
           {ready && tab === 'chat' && <Chat />}

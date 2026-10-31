@@ -17,6 +17,9 @@ interface ChatState {
   setLastMessageError: (errorText: string) => void
   setStreaming: (streaming: boolean) => void
   reset: () => void
+  /** A question queued from elsewhere in the app (e.g. Threat Intel → Ask Sheldon). */
+  pending: string | null
+  setPending: (q: string | null) => void
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -45,5 +48,7 @@ export const useChatStore = create<ChatState>((set) => ({
     return { messages }
   }),
   setStreaming: (streaming) => set({ streaming }),
-  reset: () => set({ messages: [], input: '', streaming: false }),
+  reset: () => set({ messages: [], input: '', streaming: false, pending: null }),
+  pending: null,
+  setPending: (q) => set({ pending: q }),
 }))

@@ -197,3 +197,151 @@ async def sensors_overview():
             for s in sensors
         ],
     }
+
+
+# --------------------------------------------------------------------------- #
+# Threat intelligence: vulnerabilities by Qualys threatIntel.* category
+# Tokens: https://docs.qualys.com/en/cs/latest/search_tips/searching_for_vulnerabilities.htm
+# --------------------------------------------------------------------------- #
+import asyncio
+import time
+
+from fastapi import HTTPException
+
+from qualys_client import cache_scope, get_async
+
+THREAT_INTEL = [
+    # key (token suffix), label, description, group
+    ("cisaKnownExploitedVulns", "CISA KEV", "Listed in the CISA Known Exploited Vulnerabilities catalog", "exploited"),
+    ("activeAttacks", "Active attacks", "Being actively attacked in the wild", "exploited"),
+    ("ransomware", "Ransomware", "Associated with ransomware attacks", "exploited"),
+    ("malware", "Malware", "Associated with malware", "exploited"),
+    ("solorigateSunburst", "Solorigate / Sunburst", "Associated with Solorigate / Sunburst", "exploited"),
+    ("publicExploit", "Public exploit", "A public exploit exists", "exploitability"),
+    ("easyExploit", "Easy exploit", "Easy to exploit", "exploitability"),
+    ("unauthenticatedExploitation", "No auth needed", "Exploitable without authentication", "exploitability"),
+    ("remoteCodeExecution", "Remote code execution", "Enables remote code execution", "exploitability"),
+    ("wormable", "Wormable", "Can spread on its own", "exploitability"),
+    ("predictedHighRisk", "Predicted high risk", "Predicted to become high risk", "exploitability"),
+    ("privilegeEscalation", "Privilege escalation", "Leads to privilege escalation", "impact"),
+    ("highLateralMovement", "Lateral movement", "Enables high lateral movement", "impact"),
+    ("highDataLoss", "High data loss", "Can cause high data loss", "impact"),
+    ("denialOfService", "Denial of service", "Can cause denial of service", "impact"),
+    ("noPatch", "No patch", "No patch available yet", "impact"),
+]
+_TI_KEYS = {k for k, *_ in THREAT_INTEL}
+_TI_CACHE: dict[tuple, tuple[float, object]] = {}
+_TI_TTL = 300          # seconds; per Qualys account
+_TI_CONCURRENCY = 4    # parallel Qualys calls per page load (stay gentle on rate limits)
+
+
+def _cached(key: tuple):
+    hit = _TI_CACHE.get(key)
+    if hit and time.time() - hit[0] < _TI_TTL:
+        return hit[1]
+    return None
+
+
+def _store(key: tuple, value):
+    if len(_TI_CACHE) > 2000:
+        _TI_CACHE.clear()
+    _TI_CACHE[key] = (time.time(), value)
+    return value
+
+
+def _total(data, page_size: int):
+    """(count, capped) from a Qualys list response."""
+    if isinstance(data, dict):
+        for k in ("count", "totalCount", "total", "totalRecords"):
+            if isinstance(data.get(k), (int, float)) or str(data.get(k, "")).isdigit():
+                return int(data[k]), False
+        rows = data.get("data", data.get("list", []))
+    else:
+        rows = data or []
+    return len(rows), len(rows) >= page_size
+
+
+def _sev(v) -> int:
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _first(d: dict, *keys):
+    """First key that is present (0 and False are real values)."""
+    for k in keys:
+        if d.get(k) is not None:
+            return d[k]
+    return None
+
+
+def _vuln_row(v: dict) -> dict:
+    cves = _first(v, "cveids", "cveIds", "cves") or []
+    if isinstance(cves, str):
+        cves = [c.strip() for c in cves.split(",") if c.strip()]
+    nested = v.get("vulnerabilities") if isinstance(v.get("vulnerabilities"), dict) else {}
+    return {
+        "qid": v.get("qid"),
+        "title": _first(v, "title", "name") or "",
+        "severity": _sev(v.get("severity")),
+        "cves": list(cves)[:5],
+        "patch_available": _first(v, "patchAvailable") if "patchAvailable" in v else nested.get("patchAvailable"),
+        "first_found": _first(v, "firstFound", "published"),
+        "images": _first(v, "imageCount", "affectedImages", "imagesCount"),
+        "containers": _first(v, "containerCount", "affectedContainers", "containersCount"),
+    }
+
+
+@router.get("/threat-intel")
+async def threat_intel_overview():
+    """How many vulnerabilities fall into each threatIntel category (one small call each, cached 5 min)."""
+    scope = cache_scope()
+    cached = _cached(("ti-overview", scope))
+    if cached is not None:
+        return cached
+
+    sem = asyncio.Semaphore(_TI_CONCURRENCY)
+    probe_size = 200  # used only if the API returns no total count
+
+    async def one(key, label, desc, group):
+        async with sem:
+            try:
+                data = await get_async("/vulnerability", {"filter": f"threatIntel.{key}:true", "pageSize": probe_size})
+                count, capped = _total(data, probe_size)
+                return {"key": key, "label": label, "description": desc, "group": group,
+                        "count": count, "capped": capped, "error": None}
+            except Exception as e:  # one failing category shouldn't break the page
+                logger.warning(f"threat-intel {key}: {type(e).__name__}")
+                return {"key": key, "label": label, "description": desc, "group": group,
+                        "count": None, "capped": False, "error": str(e)[:200]}
+
+    results = await asyncio.gather(*(one(*t) for t in THREAT_INTEL))
+    auth_errors = [r for r in results if r["error"] and ("401" in r["error"] or "rejected" in r["error"].lower())]
+    if auth_errors and len(auth_errors) == len(results):
+        raise HTTPException(status_code=401, detail="Qualys rejected the credentials")
+    return _store(("ti-overview", scope), {"categories": list(results), "cached_for_seconds": _TI_TTL})
+
+
+@router.get("/threat-intel/{key}")
+async def threat_intel_detail(key: str, severity_min: int = 0, page_size: int = 25):
+    """Top vulnerabilities in one threatIntel category, most severe first."""
+    if key not in _TI_KEYS:
+        raise HTTPException(status_code=404, detail="Unknown threat-intel category")
+    page_size = max(1, min(page_size, 100))
+    scope = cache_scope()
+    ck = ("ti-detail", scope, key, severity_min, page_size)
+    cached = _cached(ck)
+    if cached is not None:
+        return cached
+
+    flt = f"threatIntel.{key}:true"
+    if 1 <= severity_min <= 5:
+        sevs = " or ".join(f"severity:{n}" for n in range(int(severity_min), 6))
+        flt += f" and ({sevs})"
+    data = await get_async("/vulnerability", {"filter": flt, "pageSize": page_size})
+    rows = data.get("data", data.get("list", [])) if isinstance(data, dict) else (data or [])
+    count, capped = _total(data, page_size)
+    items = sorted((_vuln_row(v) for v in rows if isinstance(v, dict)), key=lambda r: -r["severity"])
+    label = next(l for k, l, *_ in THREAT_INTEL if k == key)
+    return _store(ck, {"key": key, "label": label, "filter": flt, "total": count, "capped": capped, "items": items})
