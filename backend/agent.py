@@ -14,11 +14,12 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from shared.tool_registry import build_anthropic_tools, build_route
+from shared.tool_registry import build_anthropic_tools, build_route, get_tool_method, preflight_filter, run_local_tool
+from shared import qql
 
 logger = logging.getLogger("agent")
 
-BEDROCK_MODEL = os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0")
+from llm import client_and_model, describe_error  # noqa: E402
 
 SYSTEM_PROMPT = """You are a Qualys Container Security assistant. You help security teams understand
 their container environment by answering questions about containers, images, vulnerabilities,
@@ -334,30 +335,13 @@ GitHub Actions example:
       --image $IMAGE_NAME:$TAG
 ```
 
-KNOWN FILTER TOKENS (use these exactly when building filter params):
-- Images active in last 24h:         imagesInUse:[now-1d ... now]
-- Images with detected secrets:      container.image.hasSecrets:true
-- Images with malware:               malware.imageMalwareCount:>0
-- Software nearing EOL (3 months):   software.lifecycle.eol:[now .. now+3M]
-- Images with AI software:           container.image.hasAiSoftware:true
-- Containers in running state:       state:RUNNING
-- Critical vulnerabilities:          vulnerability.severity:CRITICAL
-- Reference for all tokens: https://docs.qualys.com/en/cs/latest/search_tips/search_tokens.htm
+{QQL_GUIDANCE}
 
 QQL / SEARCH TOKEN QUERIES:
 - When a user asks "what is the QQL for...", "what is the filter token for...", "how do I search for...", or "what is the search syntax for..." — ALWAYS call fetch_docs with this URL first:
   https://docs.qualys.com/en/cs/latest/search_tips/search_tokens.htm
-- Then answer with the exact token from the page. If fetch_docs fails or returns inaccessible content, use the embedded tokens below — do NOT fall back to training knowledge.
-- If a filter query fails at runtime, re-fetch the above URL to find the correct token syntax and retry.
-
-AUTHORITATIVE QQL TOKENS (use these exactly — do NOT use detection.type:secret or similar):
-- Images with secrets:           container.image.hasSecrets:true
-- Images with malware:           malware.imageMalwareCount:>0
-- Images with AI software:       container.image.hasAiSoftware:true
-- Images active in last 24h:     imagesInUse:[now-1d ... now]
-- Software nearing EOL:          software.lifecycle.eol:[now .. now+3M]
-- Containers running:            state:RUNNING
-- Critical vulnerabilities:      vulnerability.severity:CRITICAL
+- Prefer lookup_qql_tokens (instant, documented tokens) to answer; use fetch_docs only for detail it lacks. Do NOT fall back to training knowledge.
+- If a filter query fails at runtime, call lookup_qql_tokens for the right resource and retry with a documented token.
 
 AWS FARGATE / ECS SCANNING:
 - For ANY question about AWS Fargate, ECS, serverless containers, or scanning containers in Fargate — you MUST call fetch_docs FIRST with this URL before generating any response:
@@ -511,6 +495,9 @@ def _doc_index_text() -> str:
 
 # Inject the verified index + a hard "no guessing" rule into the system prompt so
 # the model only ever fetches real URLs.
+# Documented QQL guidance + team-verified filters (shared/qql_examples.txt).
+SYSTEM_PROMPT = SYSTEM_PROMPT.replace("{QQL_GUIDANCE}", qql.prompt_block())
+
 SYSTEM_PROMPT += (
     "\n\nVERIFIED DOCUMENTATION URLS (fetch_docs ALLOWLIST — use ONLY these):\n"
     "- You may ONLY call fetch_docs with a URL from the list below, or a URL that a previous "
@@ -526,21 +513,9 @@ SYSTEM_PROMPT += (
 )
 
 
-def _make_client() -> anthropic.AnthropicBedrock:
-    return anthropic.AnthropicBedrock(
-        aws_access_key=os.environ["AWS_ACCESS_KEY_ID"],
-        aws_secret_key=os.environ["AWS_SECRET_ACCESS_KEY"],
-        aws_region=os.environ.get("AWS_REGION", "us-east-1"),
-    )
-
-# Single shared client — recreating it per query is wasteful (opens new HTTP session each time)
-_client: anthropic.AnthropicBedrock | None = None
-
-def get_client() -> anthropic.AnthropicBedrock:
-    global _client
-    if _client is None:
-        _client = _make_client()
-    return _client
+def get_client():
+    """Client for the current request (host's Bedrock or the user's own key; see llm.py)."""
+    return client_and_model()[0]
 
 
 # Anthropic tool definitions are now generated from the shared registry.
@@ -727,21 +702,25 @@ async def refresh_docs_cache() -> tuple[int, int]:
 
 async def _call_qualys_tool(name: str, inputs: dict) -> str:
     """Execute a Qualys API call for a tool using the shared route builder."""
-    from qualys_client import get_async
+    from qualys_client import get_async, post_async
 
     if name == "fetch_docs":
         return await _fetch_docs(inputs.get("url", ""))
 
     try:
+        local = run_local_tool(name, inputs)
+        if local is not None:
+            return json.dumps(local)
+        rejected = preflight_filter(name, inputs)
+        if rejected:
+            logger.info(f"AGENT  filter rejected before Qualys: {inputs.get('filter')}")
+            return json.dumps(rejected)
+        # build_route also translates snake_case inputs to Qualys camelCase params.
         path, params = build_route(name, inputs)
-        # Translate shared snake-case keys to Qualys API camelCase keys.
-        param_map = {
-            "page_number": "pageNumber",
-            "page_size": "pageSize",
-            "pagination_query": "paginationQuery",
-        }
-        params = {param_map.get(k, k): v for k, v in params.items()}
-        result = await get_async(path, params)
+        if get_tool_method(name) == "POST":
+            result = await post_async(path, params)
+        else:
+            result = await get_async(path, params)
         return json.dumps(result)
     except Exception as e:
         return json.dumps({"error": str(e)})
@@ -867,7 +846,7 @@ def _apply_persona_filter(text: str) -> str:
 
 
 async def run_agent(user_message: str, history: list) -> AsyncGenerator[str, None]:
-    client = get_client()
+    client, model = client_and_model()
     messages = _truncate_messages(history + [{"role": "user", "content": user_message}])
     turn = 0
 
@@ -876,21 +855,29 @@ async def run_agent(user_message: str, history: list) -> AsyncGenerator[str, Non
     while True:
         turn += 1
         messages = _truncate_messages(messages)
-        logger.info(f"AGENT  turn {turn}  → calling Bedrock ({BEDROCK_MODEL})  messages={len(messages)}")
-        response = client.messages.create(
-            model=BEDROCK_MODEL,
-            max_tokens=4096,
-            system=SYSTEM_PROMPT,
-            tools=TOOLS,
-            messages=messages,
-        )
+        logger.info(f"AGENT  turn {turn}  → calling model ({model})  messages={len(messages)}")
+        try:
+            # Run the blocking SDK call in a worker thread so one user's chat
+            # doesn't stall everyone else's requests on this server.
+            response = await asyncio.to_thread(
+                client.messages.create,
+                model=model,
+                max_tokens=4096,
+                system=SYSTEM_PROMPT,
+                tools=TOOLS,
+                messages=messages,
+            )
+        except anthropic.APIError as e:
+            logger.warning(f"AGENT  model call failed: {type(e).__name__}")
+            raise RuntimeError(describe_error(e)) from None
         logger.info(f"AGENT  turn {turn}  ← stop_reason={response.stop_reason}  tokens={response.usage.input_tokens}in/{response.usage.output_tokens}out")
 
-        if response.stop_reason == "end_turn":
+        if response.stop_reason != "tool_use":
+            # end_turn, max_tokens, refusal, ...: show whatever text the model wrote.
             for block in response.content:
-                if hasattr(block, "text"):
+                if getattr(block, "type", "") == "text":
                     yield _apply_persona_filter(block.text)
-            logger.info("AGENT  done")
+            logger.info(f"AGENT  done ({response.stop_reason})")
             break
 
         if response.stop_reason == "tool_use":
@@ -909,6 +896,9 @@ async def run_agent(user_message: str, history: list) -> AsyncGenerator[str, Non
             tool_results = await asyncio.gather(*[_run_tool(block) for block in tool_blocks])
 
             def _serialize_block(b):
+                # Send every block back exactly as the model produced it. Newer
+                # Claude models return thinking / redacted_thinking blocks whose
+                # content and signature must be passed back unchanged.
                 if isinstance(b, dict):
                     return b
                 t = getattr(b, "type", "")
@@ -916,6 +906,13 @@ async def run_agent(user_message: str, history: list) -> AsyncGenerator[str, Non
                     return {"type": "tool_use", "id": b.id, "name": b.name, "input": b.input}
                 if t == "text":
                     return {"type": "text", "text": getattr(b, "text", "")}
+                if t == "thinking":
+                    return {"type": "thinking", "thinking": getattr(b, "thinking", ""),
+                            "signature": getattr(b, "signature", "")}
+                if t == "redacted_thinking":
+                    return {"type": "redacted_thinking", "data": getattr(b, "data", "")}
+                if hasattr(b, "model_dump"):
+                    return b.model_dump(exclude_none=True)
                 return {"type": t}
 
             assistant_content = [_serialize_block(b) for b in response.content]

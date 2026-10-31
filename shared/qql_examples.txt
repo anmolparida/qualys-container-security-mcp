@@ -1,0 +1,22 @@
+# Verified QQL filters: "question | resource | filter".
+# These are shown to the model as known-good examples. Add one whenever you confirm
+# a filter works against the Qualys API - it's the fastest way to teach Sheldon.
+
+CISA Known Exploited Vulnerabilities (KEV) | vulnerability | threatIntel.cisaKnownExploitedVulns:true
+Critical vulnerabilities | vulnerability | severity:5
+Vulnerabilities under active attack | vulnerability | threatIntel.activeAttacks:true
+Vulnerabilities with a public exploit | vulnerability | threatIntel.publicExploit:true
+Ransomware-related vulnerabilities | vulnerability | threatIntel.ransomware:true
+A specific CVE | vulnerability | cveids:CVE-2021-44228
+Images with secrets | image | container.image.hasSecrets:true
+Images with malware | image | image.malware.count>0
+Images used in the last 24 hours | image | container.image.lastUsedDate:[now-1d ... now]
+Images with critical vulnerabilities | image | vulnerabilities.severity:5
+Images whose last scan failed | image | container.image.scanStatus:FAILED
+Running containers | container | container.instance.state:RUNNING
+Containers running as root | container | container.instance.isRoot:true
+Privileged containers | container | container.instance.isPrivileged:true
+Containers in a namespace | container | container.cluster.k8s.pod.namespace:prod
+Pods exposed to the internet | container | container.k8s.exposure.exposedToWorld:true
+Software reaching end of life in 3 months | software | software.lifecycle.eol:[now ... now+3M]
+Sensors not checked in for 7 days | sensor | not sensor.lastCheckedInDate:[now-7d ... now]

@@ -1,0 +1,31 @@
+# Run both services locally the same way they run on AWS.
+#   cp .env.example .env   # fill in Qualys + AWS values
+#   docker compose up --build
+# Web app:    http://localhost:8000
+# MCP server: http://localhost:8080/mcp  (send X-Qualys-* headers)
+services:
+  web:
+    build:
+      context: .
+      dockerfile: deploy/web.Dockerfile
+    env_file: .env
+    environment:
+      CORS_ORIGINS: http://localhost:8000
+      # user = each person signs in with their own Qualys URL + API token
+      QUALYS_AUTH_MODE: ${QUALYS_AUTH_MODE:-user}
+      # host = your AWS Bedrock pays; user = each person enters their own AI key
+      LLM_BILLING: ${LLM_BILLING:-host}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  mcp:
+    build:
+      context: .
+      dockerfile: deploy/mcp.Dockerfile
+    environment:
+      # Default gateway used when a client omits X-Qualys-Url (optional).
+      QUALYS_URL: ${QUALYS_URL:-}
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
