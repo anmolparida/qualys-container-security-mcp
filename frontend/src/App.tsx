@@ -1,5 +1,10 @@
-import { useState } from 'react'
-import { Container, ImageIcon, Database, Network, Zap, Sun, Moon, ExternalLink, Info, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Container, ImageIcon, Database, Network, Zap, Sun, Moon, ExternalLink, Info, X, KeyRound, LogOut } from 'lucide-react'
+import QualysSignIn from './components/QualysSignIn'
+import { fetchConfig, type AuthMode, type LlmBilling } from './lib/api'
+import { accountLabel, clearCredentials, clearLlm, currentCredentials, currentLlm, onAuthRequired, onCredentialsChange } from './lib/credentials'
+import { useDashboardStore } from './store/dashboardStore'
+import { useChatStore } from './store/chatStore'
 import ContainerOverview from './pages/ContainerOverview'
 import ImageVulnerabilities from './pages/ImageVulnerabilities'
 import RegistryHealth from './pages/RegistryHealth'
@@ -22,6 +27,40 @@ export default function App() {
   const { dark, toggle } = useTheme()
   const active = NAV.find(n => n.id === tab)
   const [showInfo, setShowInfo] = useState(false)
+
+  // Qualys sign-in: in "user" mode every person signs in with their own
+  // Qualys URL + API token and sees only their own data.
+  const [authMode, setAuthMode] = useState<AuthMode | 'loading'>('loading')
+  const [llmBilling, setLlmBilling] = useState<LlmBilling>('host')
+  const [creds, setCreds] = useState(currentCredentials())
+  const [llm, setLlmState] = useState(currentLlm())
+  const [signIn, setSignIn] = useState<{ open: boolean; message?: string }>({ open: false })
+  const [sessionKey, setSessionKey] = useState(0)
+  const resetDashboard = useDashboardStore(s => s.reset)
+  const resetChat = useChatStore(s => s.reset)
+
+  useEffect(() => {
+    fetchConfig()
+      .then(c => { setAuthMode(c.auth_mode); setLlmBilling(c.llm_billing ?? 'host') })
+      .catch(() => setAuthMode('service'))
+  }, [])
+
+  useEffect(() => onAuthRequired(message => setSignIn({ open: true, message })), [])
+
+  useEffect(() => onCredentialsChange(() => {
+    // Different account => drop everything cached from the previous one.
+    setCreds(currentCredentials())
+    setLlmState(currentLlm())
+    resetDashboard()
+    resetChat()
+    setSessionKey(k => k + 1)
+  }), [resetDashboard, resetChat])
+
+  const needQualys = authMode === 'user'
+  const needLlm = llmBilling === 'user'
+  const needsSignIn = authMode !== 'loading' && ((needQualys && !creds) || (needLlm && !llm))
+  const ready = authMode !== 'loading' && !needsSignIn
+  const showAccount = (needQualys && creds) || (needLlm && llm)
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-base)' }}>
@@ -80,6 +119,26 @@ export default function App() {
         </div>
 
         <div className="p-4 border-t" style={{ borderColor: 'var(--border)' }}>
+          {showAccount && (
+            <div className="mb-2 px-3 py-2 rounded-lg text-xs" style={{ background: 'var(--bg-secondary-alpha)', color: 'var(--text-muted)' }}>
+              {needQualys && creds && (
+                <div className="flex items-center gap-2">
+                  <KeyRound size={13} className="flex-shrink-0" />
+                  <span className="truncate" title={creds.url}>Qualys · {accountLabel(creds)}</span>
+                </div>
+              )}
+              {needLlm && llm && (
+                <div className="flex items-center gap-2 mt-1">
+                  <Zap size={13} className="flex-shrink-0" />
+                  <span className="truncate">AI · your {llm.provider === 'anthropic' ? 'Anthropic' : `Bedrock (${llm.region})`} key</span>
+                </div>
+              )}
+              <div className="flex gap-3 mt-1.5 pl-5">
+                <button onClick={() => setSignIn({ open: true })} className="hover:text-white">Switch</button>
+                <button onClick={() => { clearLlm(false); clearCredentials() }} className="flex items-center gap-1 hover:text-white"><LogOut size={11} />Sign out</button>
+              </div>
+            </div>
+          )}
           <button
             onClick={toggle}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-[var(--bg-secondary-alpha)] transition-all"
@@ -140,7 +199,7 @@ export default function App() {
                 </div>
                 <div className="space-y-3 text-sm">
                   {[
-                    { label: 'LLM', value: 'Claude 3 Haiku via Amazon Bedrock' },
+                    { label: 'LLM', value: 'Claude Haiku 5.5 via Amazon Bedrock' },
                     { label: 'Protocol', value: 'Model Context Protocol (MCP)' },
                     { label: 'Backend', value: 'FastAPI + async Python' },
                     { label: 'Frontend', value: 'React + Tailwind CSS' },
@@ -165,13 +224,24 @@ export default function App() {
             </div>
           )}
         </header>
-        <div className="flex-1 overflow-y-auto p-6">
-          {tab === 'containers' && <ContainerOverview />}
-          {tab === 'images' && <ImageVulnerabilities />}
-          {tab === 'registry' && <RegistryHealth />}
-          {tab === 'k8s' && <K8sPosture />}
-          {tab === 'chat' && <Chat />}
+        <div className="flex-1 overflow-y-auto p-6" key={sessionKey}>
+          {ready && tab === 'containers' && <ContainerOverview />}
+          {ready && tab === 'images' && <ImageVulnerabilities />}
+          {ready && tab === 'registry' && <RegistryHealth />}
+          {ready && tab === 'k8s' && <K8sPosture />}
+          {ready && tab === 'chat' && <Chat />}
         </div>
+        {(needsSignIn || signIn.open) && (
+          <QualysSignIn
+            needQualys={needQualys}
+            needLlm={needLlm}
+            initial={creds}
+            initialLlm={llm}
+            message={signIn.message}
+            onDone={() => setSignIn({ open: false })}
+            onCancel={needsSignIn ? undefined : () => setSignIn({ open: false })}
+          />
+        )}
       </main>
     </div>
   )

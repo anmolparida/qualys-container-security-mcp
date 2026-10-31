@@ -1,356 +1,270 @@
-# Qualys KCS — AI Security Intelligence Platform
+# Sheldon — AI assistant for Qualys Container Security
 
-**Sheldon** is an AI assistant for Qualys Kubernetes & Container Security. You type a question in plain English — Sheldon calls the right Qualys API, fetches live data from your environment, and returns an answer in seconds.
+Ask questions about your containers in plain English. Sheldon picks the right
+Qualys Container Security (CS) API, fetches **live data from your own Qualys
+account**, and answers in seconds — with tables and charts when they help.
 
-No searching through docs. No waiting on an SME. No tickets.
+> "Show me critical CVEs in running containers" · "Which images have secrets or malware?"
+> · "List pods in the prod namespace" · "How do I deploy the sensor with Helm?"
 
-## Table of Contents
+The same 40+ Qualys tools are also available as an **MCP server**, so you can use them
+from Cursor, Claude Code or Claude Desktop.
 
-- [What Sheldon Can Do](#what-sheldon-can-do)
-- [How It Works](#how-it-works)
-- [Architecture](#architecture)
-- [Prerequisites](#prerequisites)
-- [Configuration](#configuration)
-- [Running Locally](#running-locally)
-- [Project Structure](#project-structure)
-- [API Endpoints](#api-endpoints)
-- [Available Tools](#available-tools)
-- [QQL Filter Tokens](#qql-filter-tokens)
-- [Troubleshooting](#troubleshooting)
-- [Extending the Project](#extending-the-project)
-- [Connecting to the MCP Server](#connecting-to-the-mcp-server)
-- [License](#license)
+---
 
-## What Sheldon Can Do
+## Contents
 
-Ask Sheldon anything about your container environment:
+1. [What's in the box](#whats-in-the-box)
+2. [Quick start (local)](#quick-start-local)
+3. [Configuration](#configuration)
+4. [Who sees what, and who pays](#who-sees-what-and-who-pays)
+5. [Deploy to AWS](#deploy-to-aws)
+6. [AWS permissions](#aws-permissions)
+7. [Use the MCP server](#use-the-mcp-server)
+8. [How it works](#how-it-works)
+9. [Project structure](#project-structure)
+10. [API endpoints](#api-endpoints)
+11. [Troubleshooting](#troubleshooting)
+12. [Reference: tools and QQL tokens](#reference-tools-and-qql-tokens)
+13. [Extending the project](#extending-the-project)
 
-- **Vulnerabilities** — "Show me all critical CVEs in running containers"
-- **Images** — "Which images have detected secrets or malware?"
-- **Kubernetes** — "List all pods in the prod namespace"
-- **Sensors** — "How do I deploy the Qualys sensor using Helm?"
-- **Registries** — "What registries are configured in my account?"
-- **Posture** — "Give me a summary of my current security posture"
-- **SBOM** — "What software is installed in image SHA abc123?"
-- **Charts** — Sheldon can render pie charts, bar charts, and tables inline
+---
 
-All answers come from **live Qualys API data** — nothing is pre-indexed or cached from a database.
+## What's in the box
 
-## How It Works
+| Part | What it is | Runs on |
+|---|---|---|
+| **Web app** | Chat with Sheldon + dashboards (containers, images, registries, K8s) | React UI + FastAPI backend, port 8000 |
+| **MCP server** | The same Qualys tools for any MCP client | Python, stdio locally or HTTP at `/mcp` when hosted |
+| **AWS deployment** | Both of the above on ECS Fargate behind one HTTPS load balancer | `deploy/` — one command |
 
-1. You type a question in the chat UI
-2. The question is sent to the FastAPI backend
-3. The backend passes it to **Claude on Amazon Bedrock** along with a list of 40+ Qualys API tools
-4. Claude reads the question, picks the right tool(s), and calls the Qualys CS API — in parallel if needed
-5. The live API results are returned to Claude, which formats them into a clear answer
-6. The answer streams back to your browser in real time
+Everything is answered from **live Qualys API calls**. No vector database, nothing pre-indexed.
 
-> **No AI guessing.** Claude is the router — it decides which API to call. The answer always comes from your actual Qualys environment.
+---
 
-## Architecture
+## Quick start (local)
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                        User                              │
-│              (Web Chat — React UI)                       │
-└────────────────────────┬─────────────────────────────────┘
-                         │
-                         ▼
-              ┌──────────────────────┐
-              │   FastAPI Backend    │
-              │  Async Python · 8000 │
-              └──────────┬───────────┘
-                         │
-          ┌──────────────▼──────────────┐
-          │      Claude 3 Haiku         │
-          │    (Amazon Bedrock)         │
-          │  reads question, picks tool │
-          └──────────────┬──────────────┘
-                         │ tool call
-                         ▼
-          ┌──────────────────────────────┐
-          │    Shared Tool Registry      │
-          │  40+ tools · single source   │
-          │  of truth for agent + MCP    │
-          └────────┬─────────────────────┘
-                   │                    │
-                   ▼                    ▼
-     ┌─────────────────────┐   ┌────────────────────┐
-     │   Qualys CS API     │   │    MCP Server       │
-     │  Live data · always │   │  Cursor · any MCP  │
-     │  from your account  │   │  compatible client  │
-     └─────────────────────┘   └────────────────────┘
+**You need:** Docker Desktop, a Qualys account with CS API access, and either AWS access
+to Amazon Bedrock or an Anthropic API key.
+
+```bash
+git clone https://github.com/anmolparida/qualys-container-security-mcp.git
+cd qualys-container-security-mcp
+cp .env.example .env        # then edit .env (see Configuration)
+docker compose up --build
 ```
 
-### Key Design Decisions
+| Open | What you get |
+|---|---|
+| http://localhost:8000 | The web app (sign in with your Qualys URL + API token if prompted) |
+| http://localhost:8080/healthz | MCP server health check |
 
-- **No RAG, no vector database** — Claude calls the Qualys API directly. Data is always live and current.
-- **Shared Tool Registry** (`shared/tool_registry.py`) — one place where all 40+ tools are defined. Both the web chat agent and the MCP server read from it. Add a tool once, it works everywhere.
-- **MCP Server** (`mcp_server/server.py`) — exposes the same Qualys tools over the Model Context Protocol so developers can use them inside Cursor or any MCP-compatible IDE.
-- **Parallel API calls** — when a question needs multiple API calls, they fire simultaneously for speed.
-- **Your AWS, your data** — Claude runs on your own Amazon Bedrock account. No data is sent to third-party AI services.
+Stop with `Ctrl+C`.
 
-## Prerequisites
+<details>
+<summary><b>Run without Docker (for development)</b></summary>
 
-- Python 3.11+
-- Node.js 18+ and npm
-- macOS, Linux, or WSL
-- A Qualys account with Container Security API access
-- AWS credentials configured with access to Amazon Bedrock (Claude model)
+Needs Python 3.11+ and Node.js 18+.
+
+```bash
+./start.sh    # installs deps, starts backend :8000 and frontend :5173, tails logs
+./stop.sh     # stops both
+./logs.sh     # tail logs again
+```
+
+Or by hand:
+
+```bash
+cd backend && pip install -r requirements.txt && uvicorn main:app --reload --port 8000
+cd frontend && npm install && npm run dev      # http://localhost:5173
+```
+
+</details>
+
+---
 
 ## Configuration
 
-Create a `.env` file in the project root by copying the example:
+All settings live in `.env` in the repo root (git-ignored — never committed).
+
+| Setting | Example | What it does |
+|---|---|---|
+| `QUALYS_AUTH_MODE` | `user` | `user`: everyone signs in with **their own** Qualys URL + API token. `service`: everyone shares the account below |
+| `QUALYS_URL` | `https://gateway.qg2.apps.qualys.com` | Qualys API gateway for your platform |
+| `QUALYS_TOKEN` | `eyJ…` | Qualys API token (or use `QUALYS_USERNAME` + `QUALYS_PASSWORD`). Used in `service` mode and by the local MCP server |
+| `LLM_BILLING` | `host` | `host`: the AWS Bedrock access below pays for chat. `user`: each person enters their own AI key |
+| `AWS_REGION` | `us-east-1` | Region for Amazon Bedrock |
+| `BEDROCK_MODEL_ID` | `us.anthropic.claude-haiku-5-5` | Claude model on Bedrock (`global.…` routes worldwide, `us.…` stays in the US) |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | | Optional. If unset, your AWS profile / SSO (or the IAM role on AWS) is used |
+
+> **Claude 3.x models are end-of-life on Bedrock.** Use Claude Haiku 5.5 as above. To list
+> what's available in your region:
+> `aws bedrock list-foundation-models --by-provider anthropic --region $AWS_REGION --output table`
+
+**Prefer SSO over keys:**
 
 ```bash
-cp .env.example .env
+aws configure sso --profile qualys-kcs && aws sso login --profile qualys-kcs
+export AWS_PROFILE=qualys-kcs
 ```
 
-Edit `.env` with your credentials:
+---
 
-```env
-# Qualys Container Security API
-QUALYS_USERNAME=your-qualys-username
-QUALYS_PASSWORD=your-qualys-password
-QUALYS_PLATFORM_URL=https://gateway.qg2.apps.qualys.com
+## Who sees what, and who pays
 
-# AWS Bedrock (for the LLM agent)
-AWS_ACCESS_KEY_ID=your-aws-access-key
-AWS_SECRET_ACCESS_KEY=your-aws-secret-key
-AWS_REGION=us-east-1
-BEDROCK_MODEL_ID=us.anthropic.claude-3-5-sonnet-20241022-v2:0
-```
+Two independent switches. Pick per deployment.
 
-> **Note**: `.env` is listed in `.gitignore` and will **never** be committed. Only `.env.example` and `.env.template` are tracked as templates.
+| Switch | Value | Whose Qualys data / whose AI bill | What a user enters at sign-in |
+|---|---|---|---|
+| `QUALYS_AUTH_MODE` | `user` *(recommended)* | Each person sees **only their own** Qualys data | Qualys platform URL + API token |
+| | `service` | Everyone sees one shared account's data | Nothing |
+| `LLM_BILLING` | `host` *(default)* | **You** pay for every chat (your Bedrock) | Nothing |
+| | `user` | **Each person** pays for their own chats | Their Anthropic API key, or Amazon Bedrock API key + region |
 
-> **Model IDs**: Bedrock model IDs change over time. Use the AWS CLI to find currently available models in your region:
-> ```bash
-> aws bedrock list-foundation-models --by-provider anthropic --region $AWS_REGION --output table
-> ```
-> Look for `anthropic.claude-3-5-sonnet-*` or `us.anthropic.claude-3-5-sonnet-*` (cross-region inference) entries.
+- **Dashboards** never call the AI model, so they cost no AI tokens.
+- **MCP users** always pay through their own AI client (Cursor / Claude), whatever `LLM_BILLING` says.
+- Keys and tokens are sent only to this app, used for that one request, and **never stored or logged** on the server.
 
-### AWS Authentication Options
-
-Instead of hardcoding AWS keys, you can also use:
+**Getting a Qualys API token:** generate one in the Qualys UI where your platform offers it, or:
 
 ```bash
-aws configure sso --profile qualys-cs-mcp
-aws sso login --profile qualys-cs-mcp
-export AWS_PROFILE=qualys-cs-mcp
+curl -s -X POST https://gateway.qg2.apps.qualys.com/auth \
+  -d "username=$QUALYS_USERNAME&password=$QUALYS_PASSWORD&token=true"
 ```
 
-If you use SSO, update the backend code in `backend/agent.py` to use `anthropic.AnthropicBedrock()` without explicit credentials so it picks up the AWS profile.
+---
 
-## Running Locally
+## Deploy to AWS
 
-The project includes convenience scripts to start and stop all services.
-
-### Start all services
+Both the web app and the MCP server run on **ECS Fargate** behind one HTTPS load balancer:
+`https://your-host/` → web app, `https://your-host/mcp` → MCP server.
 
 ```bash
-./start.sh
+cp deploy/aws/params.example.env deploy/aws/params.env   # VPC, subnets, certificate, the two switches
+deploy/aws/deploy.sh all                                  # build, push, deploy
 ```
 
-This script will:
+Then point your DNS name at the `LoadBalancerDnsName` output. Full step-by-step guide,
+settings and operations: **[DEPLOYMENT.md](DEPLOYMENT.md)**.
 
-1. Install Python dependencies for the backend (`pip install -r backend/requirements.txt`)
-2. Install Node.js dependencies for the frontend (`npm install` inside `frontend/`)
-3. Start the FastAPI backend on `http://localhost:8000`
-4. Start the Vite frontend dev server on `http://localhost:5173`
-5. Save process IDs to `.pids` and tail logs from both services
+---
 
-Open your browser at:
+## AWS permissions
 
-- **Frontend**: http://localhost:5173
-- **Backend Health**: http://localhost:8000/health
+Three different identities need AWS access. Grant only the one you need.
 
-### Stop all services
+### 1. The person who runs `deploy.sh`
 
-```bash
-./stop.sh
-```
+Needs to create the stack's ECR repositories, ECS cluster and services, load balancer,
+security groups, IAM roles and log groups.
 
-This stops the backend and frontend processes and frees ports 8000 and 5173.
+- **Least-privilege policy:** [`deploy/aws/deployer-iam-policy.json`](deploy/aws/deployer-iam-policy.json).
+  Attach it to the deploying user or role. It is scoped to resources named `qualys-kcs*`,
+  so keep `STACK_NAME` starting with `qualys-kcs` (or edit the policy).
 
-### Manual startup (alternative)
+  ```bash
+  aws iam create-policy --policy-name qualys-kcs-deployer \
+    --policy-document file://deploy/aws/deployer-iam-policy.json
+  aws iam attach-user-policy --user-name <you> \
+    --policy-arn arn:aws:iam::<account-id>:policy/qualys-kcs-deployer
+  ```
 
-If you prefer to run components individually:
+- **Quick alternative:** `AdministratorAccess` in a sandbox account.
 
-```bash
-# Terminal 1 — Backend
-cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
-
-# Terminal 2 — Frontend
-cd frontend
-npm install
-npm run dev
-```
-
-## Project Structure
-
-```
-qualys-container-security-mcp/
-├── .env                  # Local secrets (ignored by git)
-├── .env.example          # Example environment variables
-├── .env.template         # Additional template for env vars
-├── .gitignore            # Git exclusions (.env, logs, node_modules, etc.)
-├── README.md             # This file
-├── start.sh              # One-command startup script
-├── stop.sh               # One-command shutdown script
-├── logs.sh               # Helper to view logs
-├── backend/
-│   ├── main.py           # FastAPI app with CORS and route registration
-│   ├── agent.py          # Claude Bedrock agent + Qualys tool definitions
-│   ├── qualys_client.py  # Shared Qualys API client utilities
-│   ├── requirements.txt  # Python dependencies
-│   └── routes/
-│       ├── dashboard.py  # Dashboard summary endpoints
-│       └── chat.py       # Chat + streaming SSE endpoint
-├── frontend/
-│   ├── index.html        # HTML entry point
-│   ├── package.json      # Node dependencies and scripts
-│   ├── vite.config.ts    # Vite configuration
-│   ├── tailwind.config.js
-│   ├── postcss.config.js
-│   ├── tsconfig.json
-│   └── src/
-│       ├── main.tsx      # React app bootstrap
-│       ├── App.tsx       # Main layout and routing
-│       ├── index.css     # Tailwind imports and global styles
-│       ├── components/   # Reusable UI components
-│       ├── context/      # React context providers
-│       ├── hooks/        # Custom React hooks
-│       ├── lib/          # Utility libraries
-│       └── pages/        # Chat, Dashboard, etc.
-└── mcp_server/
-    ├── server.py         # FastMCP server exposing Qualys CS tools
-    ├── qualys_client.py  # Qualys API HTTP client
-    └── requirements.txt  # MCP server dependencies
-```
-
-## API Endpoints
-
-### Backend (FastAPI)
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Health check |
-| GET | `/dashboard/summary` | High-level security summary |
-| GET | `/dashboard/critical` | Critical/high vulnerability summary |
-| POST | `/chat` | Stream chat response via SSE |
-
-The `/chat` endpoint accepts JSON with a `message` field and returns a Server-Sent Events (SSE) stream of response tokens from the LLM agent.
-
-## Available Tools
-
-All tools are defined in `shared/tool_registry.py` and are automatically available in both the web chat and the MCP server.
-
-### Containers
-- `list_containers` — list containers with filtering/sorting
-- `get_container_details` — details for a specific container SHA
-- `get_container_vulns` — vulnerability details for a container
-- `get_container_vuln_count` — vulnerability count summary
-- `get_container_software` — software inventory (SBOM)
-- `get_container_compliance` — policy compliance details
-- `list_containers_bulk` — bulk container listing with pagination
-
-### Images
-- `list_images` — list container images
-- `get_image_details` — image details by SHA
-- `get_image_vulns` — image vulnerabilities
-- `get_image_vuln_count` — image vulnerability counts
-- `get_image_software` — image software inventory
-- `get_image_compliance` — image compliance status
-- `get_image_secrets` — secrets detected in an image
-- `get_image_malware` — malware detected in an image
-- `find_images_with_secrets` — find all images with secrets
-- `find_images_with_malware` — find all images with malware
-- `find_images_by_vuln_severity` — find images by vulnerability severity
-- `find_containers_by_vuln_severity` — find containers by vulnerability severity
-- `get_image_association` — containers using a specific image
-- `list_images_bulk` — bulk image listing with pagination
-
-### Registries & Kubernetes
-- `list_registries` — configured registries
-- `get_registry_details` — registry details
-- `get_registry_repositories` — repositories in a registry
-- `get_registry_schedules` — registry scan schedules
-- `list_sensors` — deployed sensors
-- `get_sensor_details` — sensor details
-- `list_k8s_clusters` — Kubernetes clusters
-- `get_k8s_cluster` — cluster details
-- `list_k8s_pods` — pods across clusters
-
-## Troubleshooting
-
-### Port already in use
-
-```bash
-lsof -ti:8000 | xargs kill -9
-lsof -ti:5173 | xargs kill -9
-```
-
-Or simply run `./stop.sh`.
-
-### Backend or frontend won't start
-
-Check the logs:
-
-```bash
-./logs.sh
-# or
-tail -f backend.log frontend.log
-```
-
-### AWS Bedrock authentication errors
-
-- Verify your AWS credentials are exported or configured via `aws configure`
-- Ensure the selected IAM user/role has `bedrock:InvokeModel` and `bedrock:InvokeModelWithResponseStream` permissions
-- Make sure the Claude model is enabled in the target AWS region
-
-### Qualys API errors (401/403)
-
-- Confirm your `QUALYS_USERNAME` and `QUALYS_PASSWORD` are correct
-- Check that your account has Container Security API access enabled
-- Verify the `QUALYS_PLATFORM_URL` matches your Qualys platform (e.g., `https://gateway.qg2.apps.qualys.com` for US2)
-
-### Frontend can't connect to backend
-
-The backend CORS middleware allows `http://localhost:5173` and `http://localhost:3000`. If you run the frontend on a different port, update `backend/main.py` `allow_origins` accordingly.
-
-## QQL Filter Tokens
-
-When Sheldon queries the Qualys API with filters, it uses these QQL (Qualys Query Language) tokens. You can also use them directly in questions like *"show me images where container.image.hasSecrets:true"*.
-
-Full reference: https://docs.qualys.com/en/cs/latest/search_tips/search_tokens.htm
-
-| Query | Filter Token |
+| Service | Why |
 |---|---|
-| Images active in last 24h | `imagesInUse:[now-1d ... now]` |
-| Images with detected secrets | `container.image.hasSecrets:true` |
-| Images with malware | `malware.imageMalwareCount:>0` |
-| Software nearing EOL (3 months) | `software.lifecycle.eol:[now .. now+3M]` |
-| Images with AI software | `container.image.hasAiSoftware:true` |
-| Critical vulnerabilities | `vulnerability.severity:CRITICAL` |
+| CloudFormation | Create / update the `qualys-kcs*` stack |
+| ECR | Create the two image repositories and push images |
+| ECS | Cluster, task definitions, services |
+| Elastic Load Balancing | Load balancer, target groups, HTTPS listener, `/mcp` rule |
+| EC2 | Read VPC / subnets; create the two security groups |
+| IAM | Create the app's two roles and pass them to ECS (+ first-time service-linked roles) |
+| CloudWatch Logs | Two log groups |
+| Secrets Manager | Only for `QUALYS_AUTH_MODE=service` (shared Qualys account) |
+| ACM | Read the TLS certificate |
 
-## Extending the Project
+### 2. The running app (created for you)
 
-The project is designed to be easy to extend:
+The CloudFormation template creates these — nothing to set up by hand.
 
-1. **Add a new Qualys API tool** — add it to `shared/tool_registry.py`. It is automatically available in the web chat agent AND the MCP server. No other changes needed.
-2. **Add workflow guidance** — if the new tool needs special instructions (e.g. when to use it, how to combine it), update the system prompt in `backend/agent.py`.
-3. **Add a new UI page** — add it under `frontend/src/pages/` and register it in `App.tsx`.
-4. **Keep secrets safe** — `.env` is in `.gitignore` and will never be committed.
+| Role | Permissions | When |
+|---|---|---|
+| Task execution role | Pull images from ECR, write logs (`AmazonECSTaskExecutionRolePolicy`); read the Qualys secret | Always; secret only in `service` mode |
+| Web app task role | `bedrock:InvokeModel`, `bedrock:InvokeModelWithResponseStream` | Only when `LLM_BILLING=host` |
+| MCP server | **No** AWS permissions | — |
 
-## Connecting to the MCP Server
+### 3. People using the app
 
-The MCP server uses `stdio` transport. Any MCP-compatible client (Cursor, etc.) connects by running the server as a local process.
+| Situation | What they need |
+|---|---|
+| Running locally with `LLM_BILLING=host` | An AWS profile / keys with `bedrock:InvokeModel` and `bedrock:InvokeModelWithResponseStream`, and **model access** enabled for Claude Haiku 5.5 in the Bedrock console |
+| Hosted, `LLM_BILLING=user`, using a **Bedrock API key** | A key from *Bedrock console → API keys* in their own account. Long-term keys get `AmazonBedrockLimitedAccess` by default; the minimum is `bedrock:CallWithBearerToken` + `bedrock:InvokeModel` + `bedrock:InvokeModelWithResponseStream`, plus model access enabled. AWS recommends short-term keys (max 12 h) outside experiments |
+| Hosted, `LLM_BILLING=user`, using an **Anthropic API key** | No AWS permissions — just a key from console.anthropic.com |
+| Using only the MCP server | No AWS permissions |
 
-### Cursor
+Minimal IAM policy for a person's own Bedrock access:
 
-Add this to your Cursor MCP config at `~/.cursor/mcp.json`:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": [
+      "bedrock:CallWithBearerToken",
+      "bedrock:InvokeModel",
+      "bedrock:InvokeModelWithResponseStream"
+    ],
+    "Resource": "*"
+  }]
+}
+```
+
+(`bedrock:CallWithBearerToken` is only needed when using a Bedrock API key.)
+
+---
+
+## Use the MCP server
+
+The MCP server exposes the same Qualys tools to any MCP client. Your AI client does the
+thinking (and pays for its own tokens); the server only calls Qualys.
+
+### Hosted (recommended)
+
+Point your client at `https://your-host/mcp` and send your own Qualys URL + token as headers.
+
+**Cursor** — `~/.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "qualys-cs": {
+      "url": "https://your-host/mcp",
+      "headers": {
+        "X-Qualys-Url": "https://gateway.qg2.apps.qualys.com",
+        "X-Qualys-Token": "${env:QUALYS_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+**Claude Code:**
+
+```bash
+claude mcp add --transport http qualys-cs https://your-host/mcp \
+  --header "X-Qualys-Url: https://gateway.qg2.apps.qualys.com" \
+  --header "X-Qualys-Token: $QUALYS_TOKEN"
+```
+
+Claude Desktop and more: see [DEPLOYMENT.md](DEPLOYMENT.md#connecting-an-mcp-client-to-the-hosted-server).
+
+### Local (stdio)
+
+Runs on your machine and reads `QUALYS_URL` + `QUALYS_TOKEN` from `.env`.
+
+```bash
+pip install -r mcp_server/requirements.txt
+```
 
 ```json
 {
@@ -363,17 +277,168 @@ Add this to your Cursor MCP config at `~/.cursor/mcp.json`:
 }
 ```
 
-Replace `/path/to/` with the actual path to your project root. The server calls `dotenv.load_dotenv()` on startup, so it will automatically pick up credentials from the `.env` file in the project root — no need to duplicate them in the config.
+Step-by-step for non-developers: [mcp_access_guide.md](mcp_access_guide.md).
 
-### Verifying the connection
+---
 
-Once connected, your MCP client should list `qualys-cs` as an available server with all 40+ Qualys tools. You can then ask questions like:
+## How it works
 
-- *"List my running containers"*
-- *"Show me images with critical vulnerabilities"*
-- *"Which images have detected secrets?"*
+1. You ask a question in the chat.
+2. The backend sends it to **Claude** with the list of 40+ Qualys tools.
+3. Claude picks the tool(s); the backend calls the **Qualys CS API** with *your* token — in parallel when it can.
+4. Claude turns the live results into an answer, table or chart, streamed back to you.
 
-The MCP server calls the same Qualys CS API as the web chat — live data, same tools, no extra setup.
+```
+ Browser (React UI)                      MCP client (Cursor / Claude)
+        │  Qualys URL + token                  │  Qualys URL + token (headers)
+        ▼                                       ▼
+ FastAPI backend :8000 ──▶ Claude         MCP server :8080 / stdio
+        │      (your Bedrock, or the user's           │
+        │       own Anthropic / Bedrock key)          │
+        └──────────────┬────────────────────────────────┘
+                       ▼
+          Shared tool registry (40+ tools, one definition)
+                       ▼
+             Qualys CS API — live data, per user
+```
+
+**Design choices**
+
+- **One tool registry** (`shared/tool_registry.py`) feeds both the web agent and the MCP server. Add a tool once, it works everywhere.
+- **Per-user credentials** (`shared/qualys_auth.py`) — only Qualys gateway domains are allowed, tokens cached per user, never logged.
+- **No RAG** — answers come from the live API, so they're always current.
+
+---
+
+## Project structure
+
+```
+├── backend/                 FastAPI app
+│   ├── main.py              App, per-user auth middleware, serves the built UI
+│   ├── agent.py             Chat agent: Claude + tool calling
+│   ├── llm.py               Who pays for AI (LLM_BILLING) — host Bedrock or user's key
+│   ├── qualys_client.py     Qualys API client (per-request credentials)
+│   └── routes/              /api/chat and /api/dashboard/*
+├── frontend/src/            React UI
+│   ├── App.tsx              Layout, sign-in gate, account switcher
+│   ├── components/QualysSignIn.tsx   Sign-in: Qualys URL + token, optional AI key
+│   ├── lib/                 API client, credential storage
+│   └── pages/               Chat and dashboards
+├── mcp_server/              MCP server (stdio or HTTP)
+├── shared/
+│   ├── tool_registry.py     The 40+ Qualys tools (single source of truth)
+│   └── qualys_auth.py       Credential parsing, gateway allowlist, token cache
+├── deploy/
+│   ├── web.Dockerfile, mcp.Dockerfile
+│   └── aws/                 cloudformation.yaml, deploy.sh, params.example.env, deployer-iam-policy.json
+├── docker-compose.yml       Run both containers locally
+├── DEPLOYMENT.md            Full AWS guide
+├── mcp_access_guide.md      MCP setup for non-developers
+└── .env.example             Settings template
+```
+
+---
+
+## API endpoints
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/health` | Health check |
+| GET | `/api/config` | Tells the UI which sign-in fields to show (`auth_mode`, `llm_billing`) |
+| GET | `/api/session` | Validates the caller's Qualys URL + token |
+| POST | `/api/llm/check` | Validates the caller's own AI key (`LLM_BILLING=user`) |
+| POST | `/api/chat/` | Chat — streams the answer as plain text |
+| GET | `/api/dashboard/containers/overview` | Container counts and riskiest containers |
+| GET | `/api/dashboard/images/vulnerabilities` | Image vulnerability summary |
+| GET | `/api/dashboard/registry/health` | Registries |
+| GET | `/api/dashboard/k8s/posture` | Kubernetes posture |
+| GET | `/api/dashboard/sensors/overview` | Sensors |
+| POST | `/docs/refresh` | Refresh the cached Qualys docs |
+
+Per-user headers: `X-Qualys-Url` + `X-Qualys-Token` on `/api/*`; with `LLM_BILLING=user`,
+also `X-LLM-Provider`, `X-LLM-Api-Key`, `X-LLM-Region`, `X-LLM-Model` on `/api/chat/`.
+
+---
+
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `404 … model version has reached the end of its life` | You're on a Claude 3.x model. Set `BEDROCK_MODEL_ID=us.anthropic.claude-haiku-5-5` (or `global.…`) |
+| `AccessDenied` / not authorized from Bedrock | Enable **model access** for Claude Haiku 5.5 in the Bedrock console; check the IAM permissions above |
+| `Qualys rejected the API token` | Token expired or wrong platform — generate a new one and pick the right gateway URL |
+| `not an allowed Qualys gateway` | Use the bare gateway URL, e.g. `https://gateway.qg2.apps.qualys.com` |
+| `The AI provider rejected your API key` | Check the Anthropic / Bedrock key and, for Bedrock, its region |
+| Port 8000 or 5173 already in use | `./stop.sh`, or `lsof -ti:8000 \| xargs kill -9` |
+| UI on another origin can't reach the API | Add it to `CORS_ORIGINS` (comma-separated) |
+| Anything else | `docker compose logs -f web`, or `./logs.sh` without Docker |
+
+---
+
+## Reference: tools and QQL tokens
+
+<details>
+<summary><b>Available tools (40+)</b> — defined once in <code>shared/tool_registry.py</code></summary>
+
+**Containers:** `list_containers`, `get_container_details`, `get_container_vulns`,
+`get_container_vuln_count`, `get_container_software`, `get_container_compliance`,
+`list_containers_bulk`
+
+**Images:** `list_images`, `get_image_details`, `get_image_vulns`, `get_image_vuln_count`,
+`get_image_software`, `get_image_compliance`, `get_image_secrets`, `get_image_malware`,
+`find_images_with_secrets`, `find_images_with_malware`, `find_images_by_vuln_severity`,
+`find_containers_by_vuln_severity`, `get_image_association`, `list_images_bulk`
+
+**Registries & Kubernetes:** `list_registries`, `get_registry_details`,
+`get_registry_repositories`, `get_registry_schedules`, `list_sensors`,
+`get_sensor_details`, `list_k8s_clusters`, `get_k8s_cluster`, `list_k8s_pods`
+
+</details>
+
+<details>
+<summary><b>QQL filter tokens</b> — usable directly in questions</summary>
+
+| Question | Use with | Filter |
+|---|---|---|
+| CISA Known Exploited Vulnerabilities | vulnerabilities | `threatIntel.cisaKnownExploitedVulns:true` |
+| Critical vulnerabilities | vulnerabilities | `severity:5` |
+| Under active attack | vulnerabilities | `threatIntel.activeAttacks:true` |
+| Images with secrets | images | `container.image.hasSecrets:true` |
+| Images with malware | images | `image.malware.count>0` |
+| Images used in the last 24h | images | `container.image.lastUsedDate:[now-1d ... now]` |
+| Running containers | containers | `container.instance.state:RUNNING` |
+| Containers running as root | containers | `container.instance.isRoot:true` |
+| Software reaching EOL in 3 months | software | `software.lifecycle.eol:[now ... now+3M]` |
+
+Tokens differ by resource, and severity is a number (5 = critical). Full catalog:
+`shared/qql_catalog.txt` · [Qualys docs](https://docs.qualys.com/en/cs/latest/search_tips/search_tokens.htm)
+
+</details>
+
+### How Sheldon gets filters right
+
+Sheldon doesn't guess filter tokens any more:
+
+1. **Verified examples** (`shared/qql_examples.txt`) are put in its instructions, so common questions use a known-good filter straight away.
+2. **`lookup_qql_tokens` tool** searches the documented tokens (`shared/qql_catalog.txt`) without calling Qualys.
+3. **Pre-flight check** — before a call goes to Qualys, every token in the `filter` is checked against the catalog for that resource. An unknown token is stopped and the closest real tokens are suggested (e.g. `vulnerability.kevs` → `threatIntel.cisaKnownExploitedVulns`), saving a slow wasted call. If the model repeats the exact same call it's let through, in case the catalog is missing a token. Turn off with `QQL_CHECK=off`.
+
+**To teach it a new filter:** add a line to `shared/qql_examples.txt`
+(`question | resource | filter`) once you've confirmed it works. For a token the catalog
+doesn't know, add it to `shared/qql_catalog.txt`. Both the chat and the MCP server pick it
+up on restart.
+
+---
+
+## Extending the project
+
+| To… | Do this |
+|---|---|
+| Add a Qualys tool | Add it to `shared/tool_registry.py` — it appears in the chat **and** the MCP server |
+| Teach Sheldon when to use it | Update the system prompt in `backend/agent.py` |
+| Add a UI page | Create it in `frontend/src/pages/` and register it in `App.tsx` |
+
+Secrets stay out of git: `.env`, logs and build output are all in `.gitignore`.
 
 ## License
 

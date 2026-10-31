@@ -1,0 +1,315 @@
+# Qualys Container Security QQL search tokens, per resource.
+# Source: https://docs.qualys.com/en/cs/latest/search_tips/search_tokens.htm (and its per-resource pages)
+# Format:  token | values | description
+# Add a line here when Qualys adds a token; VERIFIED examples live in qql_examples.txt.
+
+[vulnerability]
+qid | integer | Qualys vulnerability ID (QID)
+title | text | Vulnerability title
+cveids | text, e.g. CVE-2015-0313 | CVE name
+severity | integer 1-5 (5 = critical) | Qualys-defined severity
+customerSeverity | integer 1-5 | Customer-defined severity
+risk | integer | Risk rating (10x severity for confirmed/potential)
+qdsScore | number | Qualys Detection Score (QDS)
+category | text, e.g. CGI, Database, DNS | Vulnerability category
+typeDetected | CONFIRMED, POTENTIAL | Detection type
+discoveryType | REMOTE, AUTHENTICATED | Discovery type
+authType | text, e.g. WINDOWS_AUTH, UNIX_AUTH | Authentication type
+supportedBy | VM, WAS, MD, WAF, CA-Windows Agent, CA-Linux Agent, CA-Mac Agent | Supporting Qualys product
+cvssInfo.accessVector | text, e.g. "Local" | CVSS access vector
+cvssInfo.baseScore | number | CVSS v2 base score
+cvssInfo.temporalScore | number | CVSS v2 temporal score
+cvss3Info.baseScore | number | CVSS v3 base score
+cvss3Info.temporalScore | number | CVSS v3 temporal score
+firstFound | date or [date ... date] | When first found
+lastFound | date or [date ... date] | When last found
+fixed | date or [date ... date] | When fixed
+reason | New, Fixed, Varied | Vulnerability reason
+result | text | Package test result (QID signature)
+layerSha | text (SHA) | Image layer where detected
+scanType | STATIC, DYNAMIC, SCA | Scan type used for detection
+product | text | Vendor product
+vendor | text | Product vendor
+software.name | text | Affected software name
+software.version | text | Affected software version
+software.fixVersion | text | Software fix version
+vulnerabilities.patchAvailable | true, false | Patch available
+threatIntel.cisaKnownExploitedVulns | true, false | In the CISA Known Exploited Vulnerabilities (KEV) catalog
+threatIntel.activeAttacks | true, false | Actively attacked
+threatIntel.publicExploit | true, false | Public exploit exists
+threatIntel.easyExploit | true, false | Easy to exploit
+threatIntel.remoteCodeExecution | true, false | Enables remote code execution
+threatIntel.unauthenticatedExploitation | true, false | Exploitable without authentication
+threatIntel.privilegeEscalation | true, false | Privilege escalation
+threatIntel.ransomware | true, false | Associated with ransomware
+threatIntel.malware | true, false | Associated with malware
+threatIntel.wormable | true, false | Wormable
+threatIntel.noPatch | true, false | No patch available
+threatIntel.denialOfService | true, false | Denial of service
+threatIntel.highDataLoss | true, false | High data loss
+threatIntel.highLateralMovement | true, false | High lateral movement
+threatIntel.predictedHighRisk | true, false | Predicted high risk
+threatIntel.solorigateSunburst | true, false | Solorigate / Sunburst
+vendorData.rhsa.id | text in double quotes, e.g. "RHSA-2011:1088" | Red Hat advisory ID
+vendorData.rhsa.severity | low, moderate, important, critical | Red Hat advisory severity
+vendorData.rhsa.cve.severity | low, moderate, important, critical | Red Hat CVE severity
+vendorData.rhsa.cve.cvss2.baseScore | number 0-10 | Red Hat CVE CVSS v2 score
+vendorData.rhsa.cve.cvss3.baseScore | number 0-10 | Red Hat CVE CVSS v3 score
+
+[image]
+container.image.sha | text (SHA-256) | Image SHA
+container.image.id | text | Image ID
+container.image.repo.registry | text | Registry name
+container.image.repo.repository | text | Repository
+container.image.repo.tag.name | text | Image tag
+container.image.repoDigest.digest | text | Repo digest
+container.image.repoDigest.registry | text | Repo digest registry
+container.image.repoDigest.repository | text | Repo digest repository
+container.image.registryUuid | text | Registry UUID
+container.image.createdDate | date or [date ... date] | Image created
+container.image.updatedDate | date or [date ... date] | Image updated
+container.image.lastUsedDate | [now-7d ... now] style range | Images in use in the period
+container.image.lastVmScanDate | date or [date ... date] | Last vulnerability scan
+container.image.lastComplianceScanDate | date or [date ... date] | Last compliance scan
+container.image.lastMalwareScanDate | date or [date ... date] | Last malware scan
+container.image.scanStatus | SUCCESS, FAILED | Scan status
+container.image.scanErrorCode | text, e.g. CMS-1301 | Scan error code
+container.image.scanType | STATIC, DYNAMIC, SCA | Scan type
+container.image.source | CICD, GENERAL, HOST, REGISTRY, SERVERLESS_FARGATE | Image source
+container.image.hasSecrets | true, false | Image contains secrets
+secret.severity | e.g. HIGH | Severity of detected secrets
+image.malware.count | number | Number of malware detections
+image.malware.malwarePrediction.family | text, e.g. Mirai | Malware family
+image.malware.malwarePrediction.severity | value from list | Malware severity
+container.image.maxQdsScore | number | Highest QDS score
+container.image.qdsSeverity | e.g. HIGH | QDS severity
+asset.truRisk | number | TruRisk score
+container.image.hasBaseImage | true, false | Has a base image
+container.image.hasChildImage | true, false | Has child images
+container.image.baseImage | text (SHA) | Images built on this base image
+container.image.baseImagesForChildImages | text (SHA) | Base images of this child image
+container.image.isDockerHubOfficial | true, false | Docker Hub official image
+container.image.architecture | text, e.g. amd64, arm64 | Image architecture
+container.image.operatingSystem.name | text in quotes | Operating system
+container.image.author | text | Image author
+container.image.sizeInBytes | number | Image size
+container.image.dockerVersion | text | Docker version
+container.image.label.key | text | Label name
+container.image.label.value | text | Label value
+container.image.layer.sha | text | Layer SHA
+container.image.layer.count | number | Number of layers
+container.image.layer.createdBy | text | Layer created by
+container.image.host.name | text | Host name
+container.image.host.ipAddress | text | Host IP
+container.image.host.architecture | amd64, arm64, x86_64 | Host architecture
+container.image.user.username | text | Image user
+container.image.service.name | text | Service in the image
+container.image.service.status | RUNNING, STOPPED | Service status
+container.image.build.repo.commit.author | text | Commit author
+asset.container.image.tag.name | text | Qualys asset tag on the image
+asset.container.instance.tag.name | text | Asset tag on containers using the image
+riskAcceptance.name | text or [a,b] | Exceptions applied
+control.id | text | Compliance control ID
+control.criticality | MINIMAL, MEDIUM, SERIOUS, CRITICAL, URGENT | Control criticality
+controls.posture | PASS, FAIL | Compliance posture
+software.name | text | Installed software name
+software.version | text | Installed software version
+software.fixVersion | text | Software fix version
+vulnerabilities.qid | integer | QID present in the image
+vulnerabilities.cveId | text | CVE present in the image
+vulnerabilities.title | text | Vulnerability title
+vulnerabilities.severity | integer 1-5 (5 = critical) | Vulnerability severity
+vulnerabilities.customerSeverity | integer 1-5 | Customer severity
+vulnerabilities.risk | integer | Risk rating
+vulnerabilities.status | OPEN, FIXED, REOPENED | Vulnerability status
+vulnerabilities.typeDetected | CONFIRMED, POTENTIAL | Detection type
+vulnerabilities.category | text | Vulnerability category
+vulnerabilities.cvss2BaseScore | number | CVSS v2 base score
+vulnerabilities.cvss3BaseScore | number | CVSS v3 base score
+vulnerabilities.firstFoundDate | date or [date ... date] | First found
+vulnerabilities.lastFoundDate | date or [date ... date] | Last found
+vulnerabilities.fixed | date or [date ... date] | Fixed
+vulnerabilities.published | date or [date ... date] | Published
+vulnerabilities.layerSha | text | Layer where found
+vulnerabilities.vendor | text | Vendor
+vulnerabilities.vendorProductName | text | Vendor product
+vulnerabilities.software.name | text | Vulnerable software
+vulnerabilities.software.version | text | Vulnerable software version
+vulnerabilities.software.fixVersion | text | Fix version
+vulnerabilities.threatIntel.isActiveAttack | true, false | Actively attacked
+vulnerabilities.threatIntel.isPublicExploit | true, false | Public exploit
+vulnerabilities.threatIntel.isEasyExploit | true, false | Easy exploit
+vulnerabilities.threatIntel.isMalware | true, false | Malware
+vulnerabilities.threatIntel.hasNoPatch | true, false | No patch
+vulnerabilities.threatIntel.isDenialOfService | true, false | Denial of service
+vulnerabilities.threatIntel.isHighDataLoss | true, false | High data loss
+vulnerabilities.threatIntel.isHighLateralMovement | true, false | High lateral movement
+vulnerabilities.vendorData.rhsa.id | text | Red Hat advisory ID
+vulnerabilities.vendorData.rhsa.severity | low, moderate, important, critical | Red Hat severity
+
+[container]
+container.instance.id | text | Container ID
+container.instance.name | text | Container name
+container.instance.sha | text | Container SHA
+container.instance.state | CREATED, RUNNING, STOPPED, PAUSED, DELETED, UNKNOWN | Container state
+container.instance.isStateChanged | date or [date ... date] | State changed
+container.instance.createdDate | date or [date ... date] | Created
+container.instance.updatedDate | date or [date ... date] | Updated
+container.instance.lastVmScanDate | date or [date ... date] | Last vulnerability scan
+container.instance.lastComplianceScanDate | date or [date ... date] | Last compliance scan
+container.instance.isRoot | true, false | Runs as root
+container.instance.isPrivileged | true, false | Privileged container
+container.instance.isDrift | true, false | Drift container
+container.instance.image.id | text | Image ID
+container.instance.image.sha | text | Image SHA
+container.instance.host.name | text | Host name
+container.instance.host.ipAddress | text | Host IP
+container.instance.host.architecture | amd64, arm64, x86_64 | Host architecture
+container.instance.ipAddress | text | Container IPv4
+container.instance.command | text | Command
+container.instance.arguments | text | Arguments
+container.instance.environment | text | Environment variable
+container.instance.labels | text | Label name
+container.instance.path | text in double quotes | File path
+container.instance.operatingSystem.name | text in quotes | Operating system
+container.instance.user.username | text | User
+container.instance.qdsSeverity | e.g. HIGH | QDS severity
+container.instance.maxQdsScore | number | Highest QDS score
+container.instance.portMapping.protocol | text, e.g. UDP | Port protocol
+container.source | GENERAL, HOST, SERVERLESS_FARGATE | Container source
+container.service.name | text | Running service
+container.service.status | RUNNING, STOPPED | Service status
+container.cluster.name | text | Cluster name
+container.cluster.uid | text | Cluster UID
+container.cluster.type | KUBERNETES | Cluster type
+container.cluster.k8s.node.name | text | Node name
+container.cluster.k8s.node.isMaster | true, false | On master node
+container.cluster.k8s.pod.name | text | Pod name
+container.cluster.k8s.pod.namespace | text | Namespace
+container.cluster.k8s.pod.uuid | text | Pod UUID
+container.cluster.k8s.pod.labels | text | Pod label
+container.cluster.k8s.pod.controller.name | text | Controller name
+container.cluster.k8s.pod.controller.type | CronJob, DaemonSet, Deployment, Job, ReplicaSet, StatefulSet, ... | Controller type
+container.cluster.k8s.namespace.labels | text "key:value" | Namespace label
+container.cluster.k8s.project | text | Project
+container.k8s.exposure.exposedOutsideCluster | true, false | Reachable from outside the cluster
+container.k8s.exposure.exposedToWorld | true, false | Reachable from the internet
+aws.ecs.cluster.name | text | Fargate cluster
+aws.ecs.accountId | text | ECS account
+aws.ecs.region.code | text | ECS region
+aws.eks.arn | text | EKS ARN
+aws.eks.accountId | text | EKS account
+aws.eks.region | text | EKS region
+aws.ec2.instanceId | text | EC2 instance
+azure.aks.resourceId | text | AKS resource ID
+azure.aks.region | text | AKS region
+gcp.gke.krn | text | GKE cluster
+gcp.gke.region | text | GKE region
+asset.truRisk | number | TruRisk score
+asset.container.instance.tag.name | text | Qualys asset tag on the container
+asset.container.image.tag.name | text | Asset tag on the image
+riskAcceptance.name | text or [a,b] | Exceptions applied
+controls.controlId | text | Compliance control ID
+controls.criticality | MINIMAL, MEDIUM, SERIOUS, CRITICAL, URGENT | Control criticality
+controls.posture | PASS, FAIL | Compliance posture
+drift.category | Software, Vulnerability | Drift category
+drift.reason | Fixed, New, Removed, Varied | Drift reason
+software.name | text | Installed software
+software.version | text | Software version
+software.fixVersion | text | Fix version
+vulnerabilities.qid | integer | QID present in the container
+vulnerabilities.cveids | text | CVE present
+vulnerabilities.title | text | Vulnerability title
+vulnerabilities.severity | integer 1-5 (5 = critical) | Severity
+vulnerabilities.risk | integer | Risk rating
+vulnerabilities.status | OPEN, FIXED, REOPENED | Status
+vulnerabilities.typeDetected | CONFIRMED, POTENTIAL | Detection type
+vulnerabilities.category | text | Category
+vulnerabilities.cvssInfo.baseScore | number | CVSS v2 base score
+vulnerabilities.cvss3Info.baseScore | number | CVSS v3 base score
+vulnerabilities.firstFound | date or [date ... date] | First found
+vulnerabilities.lastFound | date or [date ... date] | Last found
+vulnerabilities.fixed | date or [date ... date] | Fixed
+vulnerabilities.product | text | Vendor product
+vulnerabilities.vendor | text | Vendor
+vulnerabilities.software.name | text | Vulnerable software
+vulnerabilities.software.version | text | Vulnerable software version
+vulnerabilities.software.fixVersion | text | Fix version
+vulnerabilities.threatIntel.activeAttacks | true, false | Actively attacked
+vulnerabilities.threatIntel.publicExploit | true, false | Public exploit
+vulnerabilities.threatIntel.easyExploit | true, false | Easy exploit
+vulnerabilities.threatIntel.malware | true, false | Malware
+vulnerabilities.threatIntel.noPatch | true, false | No patch
+vulnerabilities.threatIntel.denialOfService | true, false | Denial of service
+vulnerabilities.threatIntel.highDataLoss | true, false | High data loss
+vulnerabilities.threatIntel.highLateralMovement | true, false | High lateral movement
+vendorData.rhsa.id | text | Red Hat advisory ID
+vendorData.rhsa.severity | low, moderate, important, critical | Red Hat severity
+
+[software]
+software.name | text | Software name
+software.version | text | Software version
+software.fixVersion | text | Fix version
+software.scanType | STATIC, DYNAMIC, SCA | Scan type
+software.lifecycle.eol | date, [range] or relative, e.g. [now ... now+3M] | End of life date
+software.lifecycle.eos | date, [range] or relative | End of support date
+software.lifecycle.ga | date, [range] or relative | General availability date
+software.lifecycle.stage | e.g. GA, EOS, EOL | Lifecycle stage
+vulnerabilities.qid | integer | QID
+vulnerabilities.cveids | text | CVE
+vulnerabilities.title | text | Vulnerability title
+vulnerabilities.severity | integer 1-5 (5 = critical) | Severity
+vulnerabilities.risk | integer | Risk rating
+vulnerabilities.typeDetected | CONFIRMED, POTENTIAL | Detection type
+vulnerabilities.category | text | Category
+vulnerabilities.patchAvailable | true, false | Patch available
+vulnerabilities.source | CONTAINER, IMAGE, BOTH | Source
+vulnerabilities.reason | Fixed, New, Removed, Varied | State
+vulnerabilities.firstFound | date or [date ... date] | First found
+vulnerabilities.lastFound | date or [date ... date] | Last found
+vulnerabilities.cvssInfo.baseScore | number | CVSS v2 base score
+vulnerabilities.cvss3Info.baseScore | number | CVSS v3 base score
+vulnerabilities.threatIntel.activeAttacks | true, false | Actively attacked
+vulnerabilities.threatIntel.publicExploit | true, false | Public exploit
+vulnerabilities.threatIntel.easyExploit | true, false | Easy exploit
+vulnerabilities.threatIntel.malware | true, false | Malware
+vulnerabilities.threatIntel.noPatch | true, false | No patch
+vulnerabilities.threatIntel.denialOfService | true, false | Denial of service
+vulnerabilities.threatIntel.highDataLoss | true, false | High data loss
+vulnerabilities.threatIntel.highLateralMovement | true, false | High lateral movement
+
+[sensor]
+sensor.id | text | Sensor ID
+sensor.uuid | text | Sensor UUID
+sensor.name | text | Sensor name
+sensor.hostname | text | Host name
+sensor.ipAddress | text | Host IPv4
+sensor.status | Running, Unknown | Sensor status
+sensor.type | CICD, GENERAL, REGISTRY, SERVERLESS_FARGATE | Sensor type
+sensor.version | text | Sensor version
+sensor.os | text in quotes | Operating system
+sensor.architecture | amd64, arm64, x86_64 | Host architecture
+sensor.containerRuntime | DOCKER, CONTAINERD, CRI-O | Container runtime
+sensor.containerRuntimeVersion | text | Runtime version
+sensor.dockerVersion | text | Docker version
+sensor.createdDate | date or [date ... date] | Created
+sensor.lastCheckedInDate | date or [date ... date] | Last check-in
+sensor.isPrivileged | true, false | Privileged sensor
+sensor.registry | text | Registry
+sensor.activationUuid | text | Activation UUID
+sensor.label.key | text | Label name
+sensor.label.value | text | Label value
+sensor.tag.name | text | Tag
+sensor.cluster.type | KUBERNETES | Cluster type
+sensor.cluster.k8s.node.name | text | Node name
+sensor.cluster.k8s.pod.name | text | Pod name
+sensor.cluster.k8s.pod.namespace | text | Namespace
+sensor.cluster.k8s.project | text | Project
+aws.ec2.instanceId | text | EC2 instance
+
+[registry]
+container.image.registry.uri | text in quotes | Registry URI
+container.image.registry.name | text in quotes | Registry name
+dockerHubOrg | text | Docker Hub organization
+created | date or [date ... now-1M] | Created
+updated | date or [date ... now-1M] | Updated

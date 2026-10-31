@@ -13,6 +13,7 @@ interface DashboardState {
   getData: (key: string) => any
   getState: (key: string) => LoadingState
   getError: (key: string) => string
+  reset: () => void
 }
 
 export const useDashboardStore = create<DashboardState>((set, get) => ({
@@ -34,4 +35,5 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   getData: (key) => get().cache[key],
   getState: (key) => get().states[key] ?? 'idle',
   getError: (key) => get().errors[key] ?? '',
+  reset: () => set({ cache: {}, states: {}, errors: {} }),
 }))

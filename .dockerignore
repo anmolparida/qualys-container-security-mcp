@@ -1,0 +1,17 @@
+.git
+.env
+.env.*
+!.env.example
+**/__pycache__
+**/*.pyc
+**/.venv
+**/node_modules
+frontend/dist
+**/*.tsbuildinfo
+*.log
+.pids
+.DS_Store
+.devin
+pitch-deck.html
+talking-points.txt
+deploy/aws

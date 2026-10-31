@@ -53,12 +53,15 @@ client, using *your own* subscription:
 ### Whose Qualys account gets used?
 
 **Yours.** Each person runs their own copy of the MCP server locally with
-their own `QUALYS_USERNAME` / `QUALYS_PASSWORD` in their own `.env` file.
+their own `QUALYS_TOKEN` (or `QUALYS_USERNAME` / `QUALYS_PASSWORD`) in their own `.env` file.
 API calls run against your own Qualys account and count against your own
 account's API limits — not the project owner's.
 
-There is no shared or hosted MCP server here — everyone runs their own local
-instance with their own credentials.
+You can either run your own local instance (below), or connect to a **hosted**
+instance if your team has deployed one (see [`DEPLOYMENT.md`](DEPLOYMENT.md#connecting-an-mcp-client-to-the-hosted-server)).
+The hosted server stores no Qualys credentials: your client sends your own
+Qualys URL and API token as headers on each request, so calls still run against
+your own Qualys account and you see only your own data.
 
 ---
 
@@ -68,7 +71,7 @@ Ask your Qualys administrator for:
 
 - `QUALYS_USERNAME`
 - `QUALYS_PASSWORD`
-- `QUALYS_PLATFORM_URL` — e.g. `https://gateway.qg2.apps.qualys.com` (varies
+- `QUALYS_URL` — e.g. `https://gateway.qg2.apps.qualys.com` (varies
   by Qualys platform/pod — confirm yours with your admin)
 
 Your account must have **Container Security API access** enabled.
@@ -99,7 +102,7 @@ Edit `.env` and fill in only the Qualys section:
 ```env
 QUALYS_USERNAME=your-qualys-username
 QUALYS_PASSWORD=your-qualys-password
-QUALYS_PLATFORM_URL=https://gateway.qg2.apps.qualys.com
+QUALYS_URL=https://gateway.qg2.apps.qualys.com
 ```
 
 Leave the AWS/Bedrock variables blank — they're unused by the MCP server.

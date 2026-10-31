@@ -1,0 +1,423 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Qualys KCS "Sheldon" on ECS Fargate - web chat app (React + FastAPI/Bedrock) and
+  the hosted MCP server (per-user Qualys credentials via headers) behind one HTTPS ALB.
+  Routes: /mcp -> MCP server, everything else -> web app.
+
+Metadata:
+  cfn-lint:
+    config:
+      ignore_checks: [W1030]  # QualysSecretArn may be blank; it is only referenced in service mode
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label: { default: Network }
+        Parameters: [VpcId, AlbSubnetIds, ServiceSubnetIds, AssignPublicIp, AlbScheme, AllowedIngressCidr]
+      - Label: { default: TLS }
+        Parameters: [CertificateArn]
+      - Label: { default: Images }
+        Parameters: [WebImageUri, McpImageUri]
+      - Label: { default: Web app }
+        Parameters: [QualysAuthMode, QualysSecretArn, LlmBilling, BedrockModelId, BedrockRegion, WebDesiredCount, WebCpu, WebMemory]
+      - Label: { default: MCP server }
+        Parameters: [McpDefaultQualysUrl, McpDesiredCount, McpCpu, McpMemory]
+      - Label: { default: "Web app sign-in (optional ALB OIDC, e.g. Okta or Entra ID)" }
+        Parameters: [OidcIssuer, OidcAuthorizationEndpoint, OidcTokenEndpoint, OidcUserInfoEndpoint, OidcClientId, OidcClientSecret]
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  AlbSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: At least two subnets in different AZs for the load balancer (public subnets if AlbScheme is internet-facing).
+  ServiceSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Subnets for the Fargate tasks. Private subnets with a NAT gateway are recommended.
+  AssignPublicIp:
+    Type: String
+    AllowedValues: [DISABLED, ENABLED]
+    Default: DISABLED
+    Description: ENABLED only if ServiceSubnetIds are public subnets without a NAT gateway (tasks need outbound internet to reach Qualys, Bedrock and ECR).
+  AlbScheme:
+    Type: String
+    AllowedValues: [internal, internet-facing]
+    Default: internal
+    Description: internal = reachable only from inside the VPC / VPN. internet-facing = public.
+  AllowedIngressCidr:
+    Type: String
+    Default: 10.0.0.0/8
+    AllowedPattern: '^(\d{1,3}\.){3}\d{1,3}/\d{1,2}$'
+    Description: CIDR allowed to reach the load balancer on 80/443 (e.g. your corporate VPN range). Use 0.0.0.0/0 only with OIDC sign-in enabled.
+  CertificateArn:
+    Type: String
+    AllowedPattern: '^arn:aws[\w-]*:acm:.+'
+    Description: ACM certificate for the HTTPS listener. Required - MCP clients send Qualys credentials in headers, so TLS is mandatory.
+
+  WebImageUri:
+    Type: String
+    Description: ECR image URI for the web app (deploy/web.Dockerfile).
+  McpImageUri:
+    Type: String
+    Description: ECR image URI for the MCP server (deploy/mcp.Dockerfile).
+
+  QualysAuthMode:
+    Type: String
+    AllowedValues: [user, service]
+    Default: user
+    Description: >-
+      user = each person signs in to the web app with their own Qualys URL + API token and sees only
+      their own data (no shared Qualys account). service = everyone uses one shared account from QualysSecretArn.
+  QualysSecretArn:
+    Type: String
+    Default: ""
+    AllowedPattern: '^(arn:aws[\w-]*:secretsmanager:.+)?$'
+    Description: Only for QualysAuthMode=service. Secrets Manager secret with JSON keys QUALYS_URL and QUALYS_TOKEN (or QUALYS_USERNAME + QUALYS_PASSWORD).
+  LlmBilling:
+    Type: String
+    AllowedValues: [host, user]
+    Default: host
+    Description: >-
+      Whose AI tokens Sheldon chat uses. host = this AWS account's Amazon Bedrock (you pay for everyone).
+      user = each person enters their own Anthropic API key or Amazon Bedrock API key at sign-in and pays for their own chats.
+  BedrockModelId:
+    Type: String
+    Default: global.anthropic.claude-haiku-5-5
+    Description: Bedrock model or inference-profile ID used by the web app.
+  BedrockRegion:
+    Type: String
+    Default: ap-south-1
+  WebDesiredCount: { Type: Number, Default: 1, MinValue: 0 }
+  WebCpu: { Type: String, Default: "512", AllowedValues: ["256", "512", "1024", "2048"] }
+  WebMemory: { Type: String, Default: "1024", Description: "MiB; must be valid for the chosen CPU" }
+
+  McpDefaultQualysUrl:
+    Type: String
+    Default: ""
+    Description: Optional default Qualys gateway URL for MCP callers that don't send X-Qualys-Url (e.g. https://gateway.qg2.apps.qualys.com).
+  McpDesiredCount: { Type: Number, Default: 1, MinValue: 0 }
+  McpCpu: { Type: String, Default: "256", AllowedValues: ["256", "512", "1024", "2048"] }
+  McpMemory: { Type: String, Default: "512", Description: "MiB; must be valid for the chosen CPU" }
+
+  OidcIssuer: { Type: String, Default: "", Description: "Leave blank to disable sign-in on the web app." }
+  OidcAuthorizationEndpoint: { Type: String, Default: "" }
+  OidcTokenEndpoint: { Type: String, Default: "" }
+  OidcUserInfoEndpoint: { Type: String, Default: "" }
+  OidcClientId: { Type: String, Default: "" }
+  OidcClientSecret:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: OIDC client secret (stored by CloudFormation as a NoEcho parameter).
+
+Rules:
+  ServiceModeNeedsSecret:
+    RuleCondition: !Equals [!Ref QualysAuthMode, service]
+    Assertions:
+      - Assert: !Not [!Equals [!Ref QualysSecretArn, ""]]
+        AssertDescription: QualysSecretArn is required when QualysAuthMode is service.
+
+Conditions:
+  EnableOidc: !Not [!Equals [!Ref OidcIssuer, ""]]
+  ServiceMode: !Equals [!Ref QualysAuthMode, service]
+  HostBilling: !Equals [!Ref LlmBilling, host]
+
+Resources:
+  # ------------------------------------------------------------------ logging
+  WebLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ecs/${AWS::StackName}/web
+      RetentionInDays: 30
+  McpLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ecs/${AWS::StackName}/mcp
+      RetentionInDays: 30
+
+  # ------------------------------------------------------------------ cluster
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref AWS::StackName
+      ClusterSettings:
+        - { Name: containerInsights, Value: enabled }
+
+  # ------------------------------------------------------------------ IAM
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ecs-tasks.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies: !If
+        - ServiceMode
+        - - PolicyName: read-app-secrets
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action: secretsmanager:GetSecretValue
+                  Resource: !Ref QualysSecretArn
+        - !Ref AWS::NoValue
+
+  WebTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ecs-tasks.amazonaws.com }
+            Action: sts:AssumeRole
+      # Only when the host pays for AI (LlmBilling=host); with LlmBilling=user the
+      # app uses each person's own key and needs no Bedrock permissions here.
+      Policies: !If
+        - HostBilling
+        - - PolicyName: bedrock-invoke
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - bedrock:InvokeModel
+                    - bedrock:InvokeModelWithResponseStream
+                  Resource:
+                    - arn:aws:bedrock:*::foundation-model/*
+                    - arn:aws:bedrock:::foundation-model/*
+                    - !Sub arn:aws:bedrock:*:${AWS::AccountId}:inference-profile/*
+        - !Ref AWS::NoValue
+
+  # ------------------------------------------------------------------ security groups
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub ${AWS::StackName} load balancer
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: !Ref AllowedIngressCidr }
+        - { IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: !Ref AllowedIngressCidr }
+
+  ServiceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub ${AWS::StackName} Fargate tasks
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 8000, ToPort: 8000, SourceSecurityGroupId: !Ref AlbSecurityGroup }
+        - { IpProtocol: tcp, FromPort: 8080, ToPort: 8080, SourceSecurityGroupId: !Ref AlbSecurityGroup }
+
+  # ------------------------------------------------------------------ load balancer
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: !Ref AlbScheme
+      Subnets: !Ref AlbSubnetIds
+      SecurityGroups: [!Ref AlbSecurityGroup]
+      LoadBalancerAttributes:
+        # Chat answers and MCP responses stream; allow long-running requests.
+        - { Key: idle_timeout.timeout_seconds, Value: "300" }
+        - { Key: routing.http.drop_invalid_header_fields.enabled, Value: "true" }
+
+  WebTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VpcId
+      TargetType: ip
+      Protocol: HTTP
+      Port: 8000
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 15
+      HealthyThresholdCount: 2
+      TargetGroupAttributes:
+        - { Key: deregistration_delay.timeout_seconds, Value: "30" }
+
+  McpTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VpcId
+      TargetType: ip
+      Protocol: HTTP
+      Port: 8080
+      HealthCheckPath: /healthz
+      HealthCheckIntervalSeconds: 15
+      HealthyThresholdCount: 2
+      TargetGroupAttributes:
+        - { Key: deregistration_delay.timeout_seconds, Value: "30" }
+
+  HttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: redirect
+          RedirectConfig: { Protocol: HTTPS, Port: "443", StatusCode: HTTP_301 }
+
+  HttpsListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      SslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+      Certificates: [{ CertificateArn: !Ref CertificateArn }]
+      DefaultActions: !If
+        - EnableOidc
+        - - Type: authenticate-oidc
+            Order: 1
+            AuthenticateOidcConfig:
+              Issuer: !Ref OidcIssuer
+              AuthorizationEndpoint: !Ref OidcAuthorizationEndpoint
+              TokenEndpoint: !Ref OidcTokenEndpoint
+              UserInfoEndpoint: !Ref OidcUserInfoEndpoint
+              ClientId: !Ref OidcClientId
+              ClientSecret: !Ref OidcClientSecret
+              OnUnauthenticatedRequest: authenticate
+              Scope: openid email profile
+          - Type: forward
+            Order: 2
+            TargetGroupArn: !Ref WebTargetGroup
+        - - Type: forward
+            TargetGroupArn: !Ref WebTargetGroup
+
+  # MCP clients can't complete a browser sign-in, so /mcp skips OIDC; every MCP
+  # request is authenticated by Qualys itself using the caller's own credentials.
+  McpListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref HttpsListener
+      Priority: 10
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig: { Values: ["/mcp", "/mcp/*"] }
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref McpTargetGroup
+
+  # ------------------------------------------------------------------ web app
+  WebTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub ${AWS::StackName}-web
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !Ref WebCpu
+      Memory: !Ref WebMemory
+      RuntimePlatform: { CpuArchitecture: X86_64, OperatingSystemFamily: LINUX }
+      ExecutionRoleArn: !GetAtt ExecutionRole.Arn
+      TaskRoleArn: !GetAtt WebTaskRole.Arn
+      ContainerDefinitions:
+        - Name: web
+          Image: !Ref WebImageUri
+          Essential: true
+          PortMappings: [{ ContainerPort: 8000, Protocol: tcp }]
+          Environment:
+            - { Name: AWS_REGION, Value: !Ref BedrockRegion }
+            - { Name: BEDROCK_MODEL_ID, Value: !Ref BedrockModelId }
+            - { Name: CORS_ORIGINS, Value: "" }
+            - { Name: QUALYS_AUTH_MODE, Value: !Ref QualysAuthMode }
+            - { Name: LLM_BILLING, Value: !Ref LlmBilling }
+          # Service mode only: the whole secret JSON is exposed as one variable and
+          # unpacked at start-up, so it may hold either a token or a username/password.
+          Secrets: !If
+            - ServiceMode
+            - - { Name: QUALYS_SECRET_JSON, ValueFrom: !Ref QualysSecretArn }
+            - !Ref AWS::NoValue
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref WebLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: web
+
+  WebService:
+    Type: AWS::ECS::Service
+    DependsOn: HttpsListener
+    Properties:
+      ServiceName: web
+      Cluster: !Ref Cluster
+      LaunchType: FARGATE
+      DesiredCount: !Ref WebDesiredCount
+      TaskDefinition: !Ref WebTaskDefinition
+      HealthCheckGracePeriodSeconds: 60
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 100
+        MaximumPercent: 200
+        DeploymentCircuitBreaker: { Enable: true, Rollback: true }
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets: !Ref ServiceSubnetIds
+          SecurityGroups: [!Ref ServiceSecurityGroup]
+          AssignPublicIp: !Ref AssignPublicIp
+      LoadBalancers:
+        - { ContainerName: web, ContainerPort: 8000, TargetGroupArn: !Ref WebTargetGroup }
+
+  # ------------------------------------------------------------------ MCP server
+  McpTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub ${AWS::StackName}-mcp
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !Ref McpCpu
+      Memory: !Ref McpMemory
+      RuntimePlatform: { CpuArchitecture: X86_64, OperatingSystemFamily: LINUX }
+      ExecutionRoleArn: !GetAtt ExecutionRole.Arn
+      # No task role: the MCP server needs no AWS permissions and holds no Qualys
+      # credentials - each caller sends their own.
+      ContainerDefinitions:
+        - Name: mcp
+          Image: !Ref McpImageUri
+          Essential: true
+          PortMappings: [{ ContainerPort: 8080, Protocol: tcp }]
+          Environment:
+            - { Name: MCP_TRANSPORT, Value: http }
+            - { Name: MCP_HOST, Value: 0.0.0.0 }
+            - { Name: MCP_PORT, Value: "8080" }
+            - { Name: QUALYS_AUTH_MODE, Value: headers }
+            - { Name: QUALYS_URL, Value: !Ref McpDefaultQualysUrl }
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref McpLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: mcp
+
+  McpService:
+    Type: AWS::ECS::Service
+    DependsOn: McpListenerRule
+    Properties:
+      ServiceName: mcp
+      Cluster: !Ref Cluster
+      LaunchType: FARGATE
+      DesiredCount: !Ref McpDesiredCount
+      TaskDefinition: !Ref McpTaskDefinition
+      HealthCheckGracePeriodSeconds: 30
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 100
+        MaximumPercent: 200
+        DeploymentCircuitBreaker: { Enable: true, Rollback: true }
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets: !Ref ServiceSubnetIds
+          SecurityGroups: [!Ref ServiceSecurityGroup]
+          AssignPublicIp: !Ref AssignPublicIp
+      LoadBalancers:
+        - { ContainerName: mcp, ContainerPort: 8080, TargetGroupArn: !Ref McpTargetGroup }
+
+Outputs:
+  LoadBalancerDnsName:
+    Description: Point your DNS name (matching CertificateArn) at this with a CNAME / Route 53 alias.
+    Value: !GetAtt LoadBalancer.DNSName
+  WebAppUrl:
+    Value: !Sub https://${LoadBalancer.DNSName}/
+  McpServerUrl:
+    Description: Streamable-HTTP MCP endpoint (use your own DNS name so the TLS certificate matches).
+    Value: !Sub https://${LoadBalancer.DNSName}/mcp
+  ClusterName:
+    Value: !Ref Cluster

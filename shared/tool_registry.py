@@ -442,6 +442,24 @@ TOOLS: list[ToolDef] = [
         },
         "route": _path("/secretDetector"),
     },
+    # Local helper (no Qualys call): the documented QQL tokens for building `filter`s.
+    {
+        "name": "lookup_qql_tokens",
+        "description": (
+            "Look up the exact Qualys QQL search tokens to use in a tool's `filter` parameter. "
+            "Call this BEFORE writing a filter unless a verified example already covers it - never guess token names. "
+            "resource: vulnerability (list_vulnerabilities, get_*_vulns), image (list_images), container (list_containers), "
+            "software (get_*_software), sensor (list_sensors), registry (list_registries). "
+            "query: keywords, e.g. 'kev', 'exploit', 'root', 'namespace', 'end of life'."
+        ),
+        "parameters": {
+            "resource": {"type": "string", "default": "",
+                         "enum": ["", "vulnerability", "image", "container", "software", "sensor", "registry"]},
+            "query": {"type": "string", "default": "", "description": "Keywords describing what to filter on"},
+        },
+        "route": None,
+        "local": True,
+    },
 ]
 
 
@@ -465,9 +483,81 @@ def build_anthropic_tools() -> list[dict[str, Any]]:
     ]
 
 
-def build_route(name: str, inputs: dict[str, Any]) -> tuple[str, dict[str, Any]]:
-    """Build the Qualys API path and params for a given tool call."""
+# Registry parameters use snake_case; the Qualys CS API expects camelCase.
+API_PARAM_NAMES = {
+    "page_number": "pageNumber",
+    "page_size": "pageSize",
+    "pagination_query": "paginationQuery",
+}
+
+
+def get_tool_method(name: str) -> str:
+    """HTTP method for a tool ("GET" unless the route was built with _path_post)."""
     tool = get_tool_metadata(name)
     if not tool:
         raise ValueError(f"Unknown tool: {name}")
-    return tool["route"](inputs)
+    return getattr(tool["route"], "_method", "GET")
+
+
+def run_local_tool(name: str, inputs: dict[str, Any]) -> dict[str, Any] | None:
+    """Run a tool that needs no Qualys call. Returns None for normal (Qualys) tools."""
+    tool = get_tool_metadata(name)
+    if not tool or not tool.get("local"):
+        return None
+    if name == "lookup_qql_tokens":
+        from shared import qql
+        return qql.lookup(inputs.get("resource", ""), inputs.get("query", ""))
+    raise ValueError(f"No local handler for {name}")
+
+
+# Filters already rejected once: a repeat of the exact same call is let through,
+# so the model can still use a valid token our catalog doesn't know yet.
+_REJECTED_FILTERS: dict[tuple[str, str], float] = {}
+
+
+def preflight_filter(name: str, inputs: dict[str, Any]) -> dict[str, Any] | None:
+    """Check a tool's `filter` against the documented QQL tokens before calling Qualys.
+
+    Returns an error payload for the model (and skips the Qualys call) when the
+    filter uses unknown tokens; returns None when the call should go ahead.
+    Disable with QQL_CHECK=off.
+    """
+    import os
+    import time
+    from shared import qql
+
+    if os.environ.get("QQL_CHECK", "on").lower() == "off":
+        return None
+    flt = inputs.get("filter") or ""
+    problem = qql.check_filter(name, flt)
+    if not problem:
+        return None
+    key = (name, flt.strip())
+    now = time.time()
+    for k in [k for k, t in _REJECTED_FILTERS.items() if now - t > 600]:
+        _REJECTED_FILTERS.pop(k, None)
+    if key in _REJECTED_FILTERS:
+        _REJECTED_FILTERS.pop(key, None)
+        return None  # model insisted: let Qualys decide
+    _REJECTED_FILTERS[key] = now
+    return {
+        "error": "unknown_qql_token",
+        "message": (
+            f"Not sent to Qualys: {', '.join(problem['unknown_tokens'])} is not a documented "
+            f"{problem['resource']} search token. Use one of the suggestions (or call lookup_qql_tokens). "
+            "If you are certain the token is valid, repeat the exact same call."
+        ),
+        "did_you_mean": problem["did_you_mean"],
+    }
+
+
+def build_route(name: str, inputs: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    """Build the Qualys API path and params (GET) or body (POST) for a tool call.
+
+    Parameter names are translated to the Qualys API's camelCase names.
+    """
+    tool = get_tool_metadata(name)
+    if not tool:
+        raise ValueError(f"Unknown tool: {name}")
+    path, params = tool["route"](inputs)
+    return path, {API_PARAM_NAMES.get(k, k): v for k, v in params.items()}

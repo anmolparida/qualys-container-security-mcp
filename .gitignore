@@ -10,3 +10,7 @@ dist/
 backend.log
 frontend.log
 *.tsbuildinfo
+
+# Deployment
+deploy/aws/params.env
+deploy/aws/.last-image-tag
