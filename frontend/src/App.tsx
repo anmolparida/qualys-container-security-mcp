@@ -177,7 +177,8 @@ export default function App() {
 
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden" style={{ color: 'var(--text-primary)' }}>
-        <header className="h-14 flex items-center justify-between px-6 border-b flex-shrink-0" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+        {/* Page header: hidden on Ask Sheldon (the top bar + sidebar already say where you are) */}
+        <header className={`h-14 flex items-center justify-between px-6 border-b flex-shrink-0 ${tab === 'chat' ? 'hidden' : ''}`} style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
           <div className="flex items-center gap-3">
             {tab === 'chat' && (
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--brand)] to-[var(--brand-2)] flex items-center justify-center shadow-md shadow-blue-900/10 flex-shrink-0">
@@ -249,7 +250,7 @@ export default function App() {
             </div>
           )}
         </header>
-        <div className="flex-1 overflow-y-auto p-6" key={sessionKey}>
+        <div className={`flex-1 overflow-y-auto ${tab === 'chat' ? '' : 'p-6'}`} key={sessionKey}>
           {ready && tab === 'containers' && <ContainerOverview />}
           {ready && tab === 'images' && <ImageVulnerabilities />}
           {ready && tab === 'threat' && <ThreatIntel onAsk={q => { setPendingQuestion(q); setTab('chat') }} />}

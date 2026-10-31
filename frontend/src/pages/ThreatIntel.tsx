@@ -65,7 +65,7 @@ export default function ThreatIntel({ onAsk }: Props) {
       <div className="flex items-center justify-between gap-4 flex-shrink-0">
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           Vulnerabilities by Qualys real-time threat indicator. Pick a category to see its vulnerabilities.
-          {failed > 0 && <span className="text-amber-500"> · {failed} couldn't be loaded</span>}
+
         </p>
         <button onClick={refresh} className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--brand)] transition-colors flex-shrink-0">
           <RefreshCw size={14} /> Refresh
@@ -76,6 +76,17 @@ export default function ThreatIntel({ onAsk }: Props) {
         {/* Left: compact category list */}
         <nav aria-label="Threat categories" className="rounded-lg border overflow-y-auto p-2 space-y-2"
           style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', boxShadow: 'var(--card-shadow)' }}>
+          {failed > 0 && (
+            <div className="flex items-center justify-between gap-2 rounded-md px-3 py-1.5 text-xs"
+              style={{ background: 'rgba(245, 158, 11, 0.08)', color: 'var(--text-secondary)' }}>
+              <span className="flex items-center gap-1.5"><AlertTriangle size={12} className="text-amber-500" />
+                {failed} {failed === 1 ? 'count' : 'counts'} didn't load
+              </span>
+              <button onClick={refresh} disabled={state === 'loading'} className="font-semibold text-[var(--brand)] hover:underline disabled:opacity-50">
+                {state === 'loading' ? 'Retrying…' : 'Retry'}
+              </button>
+            </div>
+          )}
           {GROUPS.map(g => (
             <div key={g.id} className="rounded-md border overflow-hidden" style={{ borderColor: `${g.bar}66`, borderLeftWidth: 3, borderLeftColor: g.bar }}>
               <div className="flex items-center gap-1.5 px-3 py-1.5" style={{ background: `${g.bar}12` }}>
@@ -88,14 +99,16 @@ export default function ThreatIntel({ onAsk }: Props) {
                 const pct = c.count ? Math.max(2, (c.count / max) * 100) : 0
                 return (
                   <button key={c.key} onClick={() => setSelected(c.key)}
-                    title={`${c.description}\nthreatIntel.${c.key}:true`}
+                    title={c.error ? `Couldn't load from Qualys (${c.error}). Use Retry above.` : `${c.description}\nthreatIntel.${c.key}:true`}
                     aria-current={active ? 'true' : undefined}
                     className={`w-full text-left px-3 py-1.5 transition-colors ${active ? "" : "hover:bg-[var(--bg-hover)]"} ${c.count === 0 ? 'opacity-50' : ''}`}
                     style={active ? { background: 'var(--brand-soft)', boxShadow: 'inset 0 0 0 1px var(--brand)' } : undefined}>
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="text-[13px] truncate" style={{ color: active ? 'var(--brand)' : 'var(--text-primary)', fontWeight: active ? 600 : 500 }}>{c.label}</span>
                       {c.error
-                        ? <span className="flex items-center gap-1 text-[11px] font-medium text-amber-600" title={`Couldn't load from Qualys: ${c.error}`}><AlertTriangle size={12} />failed</span>
+                        ? <span className="flex items-center gap-1 text-[13px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                            <AlertTriangle size={11} className="text-amber-500" />—
+                          </span>
                         : <span className="text-[13px] font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>{fmt(c)}</span>}
                     </div>
                     <div className="mt-1 h-[4.5px] rounded-full" style={{ background: "var(--bg-secondary)" }}>

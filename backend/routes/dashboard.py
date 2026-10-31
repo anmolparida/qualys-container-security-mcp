@@ -305,14 +305,17 @@ async def threat_intel_overview():
         return cached
 
     sem = asyncio.Semaphore(_TI_CONCURRENCY)
-    probe_size = 200  # used only if the API returns no total count
+    # Only the total is needed: ask for 1 record (Qualys returns the overall count).
+    # Fetching hundreds of full records per category made big categories time out.
+    probe_size = 1
+    fallback_size = 200  # only if this API version returns no total count
 
-    async def fetch(key):
-        """One category count, retrying rate limits / transient errors with backoff."""
+    async def fetch(key, size):
+        """One category, retrying rate limits / transient errors with backoff."""
         delay = 1.0
         for attempt in range(_TI_RETRIES + 1):
             try:
-                return await get_async("/vulnerability", {"filter": f"threatIntel.{key}:true", "pageSize": probe_size})
+                return await get_async("/vulnerability", {"filter": f"threatIntel.{key}:true", "pageSize": size})
             except httpx.HTTPStatusError as e:
                 code = e.response.status_code
                 if code in (429, 500, 502, 503, 504) and attempt < _TI_RETRIES:
@@ -333,8 +336,11 @@ async def threat_intel_overview():
     async def one(key, label, desc, group):
         async with sem:
             try:
-                data = await fetch(key)
+                data = await fetch(key, probe_size)
                 count, capped = _total(data, probe_size)
+                if capped:  # no total in the response: count a bigger page instead
+                    data = await fetch(key, fallback_size)
+                    count, capped = _total(data, fallback_size)
                 return {"key": key, "label": label, "description": desc, "group": group,
                         "count": count, "capped": capped, "error": None}
             except httpx.HTTPStatusError as e:  # one failing category shouldn't break the page

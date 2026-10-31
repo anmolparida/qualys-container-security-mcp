@@ -229,6 +229,9 @@ export default function Chat() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending, streaming])
 
+  // "Did you know?" tips are only shown while the latest answer is loading.
+  const lastUserIndex = messages.map(m => m.role).lastIndexOf('user')
+
   return (
     <div className="flex flex-col h-full">
       {/* Messages area */}
@@ -259,7 +262,7 @@ export default function Chat() {
             </div>
           </div>
         ) : (
-          <div className="space-y-5 mx-auto pt-4" style={{ maxWidth: '52rem' }}>
+          <div className="space-y-4 mx-auto pt-3" style={{ maxWidth: '58rem' }}>
             {messages.map((m, i) => (
               <div key={i} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {m.role === 'assistant' && (
@@ -268,7 +271,7 @@ export default function Chat() {
                   </div>
                 )}
                 <div className={`max-w-[95%] md:max-w-[95%] ${m.role === 'user' ? 'order-1' : 'order-2'}`}>
-                  {m.role === 'user' && m.fact && (
+                  {m.role === 'user' && m.fact && streaming && i === lastUserIndex && (
                     <div className="mb-2 text-right">
                       <div className="inline-flex items-center gap-2 rounded-lg border-l-4 border-[var(--brand)] p-2.5 text-xs text-left max-w-full" style={{ background: 'var(--bg-secondary-alpha)', color: 'var(--text-muted)' }}>
                         <span className="relative flex-shrink-0 flex items-center justify-center w-4 h-4" style={{ overflow: 'visible' }}>
@@ -339,27 +342,26 @@ export default function Chat() {
       </div>
 
       {/* Input area */}
-      <div className="border-t flex-shrink-0 p-4" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
-        <div className="mx-auto flex gap-3" style={{ maxWidth: '52rem' }}>
+      <div className="border-t flex-shrink-0 px-4 py-2" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+        <div className="mx-auto flex gap-2" style={{ maxWidth: '58rem' }}>
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send(input)}
             placeholder="Ask about containers, images, vulnerabilities, or charts..."
             disabled={streaming}
-            className="flex-1 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)] disabled:opacity-50 transition-colors border"
+            className="flex-1 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)] disabled:opacity-50 transition-colors border"
             style={{ background: 'var(--bg-base)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
           />
           <button
             onClick={() => send(input)}
             disabled={streaming || !input.trim()}
-            className="bg-[var(--brand)] hover:bg-[var(--brand-hover)] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl px-4 py-3 transition-colors flex items-center gap-2"
+            className="bg-[var(--brand)] hover:bg-[var(--brand-hover)] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg px-4 py-2 transition-colors flex items-center gap-2"
           >
             <Send size={18} />
             <span className="hidden sm:inline text-sm font-medium">Send</span>
           </button>
         </div>
-        <p className="text-center text-xs mt-2" style={{ color: 'var(--text-muted)' }}>Powered by Claude on Amazon Bedrock</p>
       </div>
     </div>
   )
