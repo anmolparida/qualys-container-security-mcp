@@ -57,7 +57,6 @@ export default function ThreatIntel({ onAsk }: Props) {
 
   const current = byKey[selected]
   const failed = data.categories.filter(c => c.error).length
-  const max = Math.max(1, ...data.categories.map(c => c.count ?? 0))
 
   return (
     <div className="flex flex-col gap-4 h-full min-h-0">
@@ -94,17 +93,23 @@ export default function ThreatIntel({ onAsk }: Props) {
                 <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{g.title}</span>
                 <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>· {g.hint}</span>
               </div>
-              {data.categories.filter(c => c.group === g.id).map(c => {
+              {(() => {
+                const cats = data.categories.filter(c => c.group === g.id)
+                // Bars are relative to the biggest count in this group, so small groups stay readable.
+                const groupMax = Math.max(1, ...cats.map(c => c.count ?? 0))
+                return cats.map(c => {
                 const active = c.key === selected
-                const pct = c.count ? Math.max(2, (c.count / max) * 100) : 0
+                const pct = c.count ? Math.max(2, (c.count / groupMax) * 100) : 0
                 return (
                   <button key={c.key} onClick={() => setSelected(c.key)}
                     title={c.error ? `Couldn't load from Qualys (${c.error}). Use Retry above.` : `${c.description}\nthreatIntel.${c.key}:true`}
                     aria-current={active ? 'true' : undefined}
-                    className={`w-full text-left px-3 py-1.5 transition-colors ${active ? "" : "hover:bg-[var(--bg-hover)]"} ${c.count === 0 ? 'opacity-50' : ''}`}
-                    style={active ? { background: 'var(--brand-soft)', boxShadow: 'inset 0 0 0 1px var(--brand)' } : undefined}>
+                    className={`relative w-full text-left px-3 py-1.5 transition-colors ${active ? "" : "hover:bg-[var(--bg-hover)]"} ${c.count === 0 && !active ? 'opacity-50' : ''}`}
+                    style={active ? { background: `${g.bar}1a` } : undefined}>
+                    {/* Selected: light wash in the group colour + short accent bar (Qualys nav style) */}
+                    {active && <span aria-hidden className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r" style={{ background: g.bar }} />}
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-[13px] truncate" style={{ color: active ? 'var(--brand)' : 'var(--text-primary)', fontWeight: active ? 600 : 500 }}>{c.label}</span>
+                      <span className="text-[13px] truncate" style={{ color: 'var(--text-primary)', fontWeight: active ? 600 : 500 }}>{c.label}</span>
                       {c.error
                         ? <span className="flex items-center gap-1 text-[13px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
                             <AlertTriangle size={11} className="text-amber-500" />—
@@ -116,7 +121,8 @@ export default function ThreatIntel({ onAsk }: Props) {
                     </div>
                   </button>
                 )
-              })}
+              })
+              })()}
             </div>
           ))}
         </nav>
