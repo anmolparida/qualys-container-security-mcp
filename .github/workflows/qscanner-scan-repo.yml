@@ -14,7 +14,7 @@
 #   2. Set QSCANNER_GATEWAY_URL below to match your Qualys account's gateway.
 
 name: QScanner Container Security Scan -- Code
-
+ 
 on:
   push:
     branches: [ main, qscanner-github-repo-scan, qscanner-github-repo-scan-access-token ]
